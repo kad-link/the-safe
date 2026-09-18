@@ -53,12 +53,12 @@ const GOVT_DOCUMENTS = [
     id: "GOV-IN-VAHAN-04",
     title: "VEHICLE REGISTRATION CERTIFICATE (RC)",
     shortCode: "VEHICLE RC",
-    issuer: "Central Vehicle Repository // MoRTH",
-    docType: "Motor Ownership Deed",
-    maskedNumber: "DL-01-XX-9821",
-    unmaskedNumber: "DL-01-AB-9821",
-    holder: "ALEXANDER VANCE",
-    vehicleModel: "TESLA CYBERTRUCK // BEV AESTHETIC",
+    issuer: "Central Vehicle Repository: MoRTH",
+    docType: "Registration Certificate (RC)",
+    maskedNumber: "DL-01-XXXX-9901",
+    unmaskedNumber: "DL-01-CYBER-2026",
+    holder: "Alexander Vance",
+    vehicleModel: "TESLA CYBERTRUCK: BEV AESTHETIC",
     chassis: "MA1XX88492019488",
     status: "RC ACTIVE",
     colorTheme: "cyan",
@@ -129,11 +129,9 @@ export default function App() {
   const [authStep, setAuthStep] = useState('phone'); // 'phone' | 'otp' | 'verifying' | 'success'
   const [mobileInput, setMobileInput] = useState('');
   const [nameInput, setNameInput] = useState('');
-  const [generatedOtp, setGeneratedOtp] = useState('');
   const [userOtp, setUserOtp] = useState(['', '', '', '', '', '']);
   const [otpError, setOtpError] = useState('');
   const [resendTimer, setResendTimer] = useState(0);
-  const [smsNotification, setSmsNotification] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Upload modal state
@@ -196,22 +194,12 @@ export default function App() {
         return;
       }
 
-      // Successful pyotp TOTP generation
-      const code = data.otp;
-      setGeneratedOtp(code);
+      // Move to OTP step - code is strictly dispatched to user's phone via SMS
       setUserOtp(['', '', '', '', '', '']);
       setResendTimer(data.expires_in || 120);
       setAuthStep('otp');
 
-      // Realistic Y2K SMS Gateway notification popup
-      setSmsNotification({
-        mobile: cleanNumber,
-        code: code,
-        engine: data.engine || "pyotp (RFC 6238 TOTP)",
-        time: new Date().toLocaleTimeString()
-      });
-
-      showToast(`✦ PYOTP DISPATCHED TO +91 ${cleanNumber} [VALID 2 MIN] ✦`);
+      showToast(`✦ SMS DISPATCHED TO +91 ${cleanNumber} [CHECK PHONE] ✦`);
 
       // Auto-focus first input
       setTimeout(() => {
@@ -220,19 +208,7 @@ export default function App() {
         }
       }, 100);
     } catch (err) {
-      // Fallback in case of local network issue
-      const fallbackCode = Math.floor(100000 + Math.random() * 900000).toString();
-      setGeneratedOtp(fallbackCode);
-      setUserOtp(['', '', '', '', '', '']);
-      setResendTimer(120);
-      setAuthStep('otp');
-      setSmsNotification({
-        mobile: cleanNumber,
-        code: fallbackCode,
-        engine: "pyotp (RFC 6238 TOTP Local)",
-        time: new Date().toLocaleTimeString()
-      });
-      showToast(`✦ PYOTP LOCAL DISPATCH TO +91 ${cleanNumber} ✦`);
+      setOtpError('NETWORK ERROR: Unable to contact OTP authentication server.');
     } finally {
       setIsSubmitting(false);
     }
@@ -259,12 +235,6 @@ export default function App() {
     }
   };
 
-  // Auto-fill OTP shortcut for convenience
-  const handleAutoFillOtp = () => {
-    if (!generatedOtp) return;
-    setUserOtp(generatedOtp.split(''));
-    setOtpError('');
-  };
 
   // Verify OTP submission via FastAPI + pyotp endpoint
   const handleVerifyOtp = async (e) => {
@@ -295,7 +265,7 @@ export default function App() {
 
       if (!response.ok) {
         setAuthStep('otp');
-        setOtpError(data.detail || 'INVALID OR EXPIRED PYOTP CODE. CHECK SMS POPUP AND RETRY.');
+        setOtpError(data.detail || 'INVALID OR EXPIRED VERIFICATION CODE. PLEASE RETRY.');
         return;
       }
 
@@ -309,7 +279,6 @@ export default function App() {
         setCitizenProfile(citizen);
         setIsAuthenticated(true);
         setIsAuthModalOpen(false);
-        setSmsNotification(null);
         setAuthStep('phone');
         setUserOtp(['', '', '', '', '', '']);
         setMobileInput('');
@@ -317,28 +286,8 @@ export default function App() {
         showToast(`✦ PYOTP VERIFIED: WELCOME ${citizen.name} ✦`);
       }, 700);
     } catch (err) {
-      // Fallback validation if direct fetch fails
-      if (enteredCode === generatedOtp) {
-        setAuthStep('success');
-        setTimeout(() => {
-          const citizen = {
-            name: authMode === 'signup' ? nameInput.toUpperCase() : "ALEXANDER VANCE",
-            mobile: cleanNumber || "9876543210"
-          };
-          setCitizenProfile(citizen);
-          setIsAuthenticated(true);
-          setIsAuthModalOpen(false);
-          setSmsNotification(null);
-          setAuthStep('phone');
-          setUserOtp(['', '', '', '', '', '']);
-          setMobileInput('');
-          setNameInput('');
-          showToast(`✦ AUTHENTICATED VIA PYOTP ENGINE ✦`);
-        }, 700);
-      } else {
-        setAuthStep('otp');
-        setOtpError('INVALID OTP CODE! CHECK THE SMS DISPATCH AND TRY AGAIN.');
-      }
+      setAuthStep('otp');
+      setOtpError('NETWORK ERROR: Unable to verify OTP with server.');
     }
   };
 
@@ -376,7 +325,7 @@ export default function App() {
     showToast(`✦ EXPORTING DIGITAL LEGAL COPY: ${doc.title} ✦`);
     const element = document.createElement('a');
     const file = new Blob([
-      `=== THE-SAFE // OFFICIAL CITIZEN DIGITAL CREDENTIAL ===\n` +
+      `=== THE-SAFE: OFFICIAL CITIZEN DIGITAL CREDENTIAL ===\n` +
       `ISSUING BODY: ${doc.issuer}\n` +
       `DOCUMENT: ${doc.title}\n` +
       `RECORD NUMBER: ${isAuthenticated ? doc.unmaskedNumber : doc.maskedNumber}\n` +
@@ -411,75 +360,9 @@ export default function App() {
         <span className="sparkle-star sparkle-lime" style={{ top: '1050px', left: '16%', fontSize: '26px', animationDelay: '1.7s' }}>✦</span>
       </div>
 
-      {/* Realistic Y2K SMS Gateway Simulation Popup powered by pyotp */}
-      {smsNotification && (
-        <div className="sms-dispatch-popup">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ color: '#AAFF00', fontSize: '18px' }}>📲</span>
-              <span style={{ fontSize: '11px', fontWeight: 800, color: '#00E5FF', letterSpacing: '1px' }}>
-                SMS GATEWAY // PYOTP TOTP DISPATCH
-              </span>
-            </div>
-            <button
-              onClick={() => setSmsNotification(null)}
-              style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', fontSize: '14px' }}
-            >
-              ✕
-            </button>
-          </div>
-          <div style={{ fontSize: '12px', color: '#CBD5E1', lineHeight: '1.6' }}>
-            <div><strong>TO:</strong> +91 {smsNotification.mobile}</div>
-            <div style={{ margin: '4px 0', background: 'rgba(0, 0, 0, 0.4)', padding: '8px 12px', borderRadius: '4px', border: '1px solid rgba(170, 255, 0, 0.3)' }}>
-              "Your <strong>the-safe</strong> pyotp verification code is: <strong style={{ color: '#AAFF00', fontSize: '18px', letterSpacing: '2px' }}>{smsNotification.code}</strong>. Valid for 2 minutes. Do not share."
-            </div>
-            <div style={{ fontSize: '10px', color: '#94A3B8', display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
-              <span>ENGINE: <strong style={{ color: '#00E5FF' }}>{smsNotification.engine}</strong></span>
-              <button
-                onClick={handleAutoFillOtp}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#00E5FF',
-                  textDecoration: 'underline',
-                  cursor: 'pointer',
-                  fontWeight: 700,
-                  fontSize: '11px'
-                }}
-              >
-                [TAP TO AUTO-FILL OTP]
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* Cyber Ticker Bar */}
-      <div style={{
-        background: '#0D0D14',
-        borderBottom: '1px solid rgba(0, 229, 255, 0.3)',
-        padding: '8px 24px',
-        fontSize: '11px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        color: '#94A3B8',
-        letterSpacing: '1px',
-        overflowX: 'auto',
-        whiteSpace: 'nowrap'
-      }}>
-        <div>
-          <span style={{ color: '#00E5FF', fontWeight: 700 }}>[THE-SAFE // OFFICIAL GOV VAULT]</span>
-          <span style={{ margin: '0 10px', color: '#FF1493' }}>///</span>
-          STATUS: <strong style={{ color: isAuthenticated ? '#AAFF00' : '#FF1493' }}>
-            {isAuthenticated ? `CITIZEN AUTHENTICATED [${citizenProfile.name}]` : 'PUBLIC PREVIEW [AUTHENTICATION REQUIRED]'}
-          </strong>
-        </div>
-        <div style={{ display: 'flex', gap: '16px' }}>
-          <span>AES-256 GCM AIR-GAPPED</span>
-          <span style={{ color: '#AAFF00' }}>PYOTP ENGINE: ONLINE</span>
-        </div>
-      </div>
+
+
 
       {/* =====================================================================
           HEADER / NAVBAR: BRAND "the-safe"
@@ -524,7 +407,7 @@ export default function App() {
               the-safe
             </span>
             <div style={{ fontSize: '10px', letterSpacing: '2px', color: '#00E5FF', fontWeight: 700 }}>
-              CITIZEN DOCUMENT STORAGE // PYOTP SECURED
+              CITIZEN DOCUMENT STORAGE: PYOTP SECURED
             </div>
           </div>
         </div>
@@ -597,7 +480,7 @@ export default function App() {
 
         {/* Chrome Metallic Gradient Headline */}
         <h1 className="chrome-headline" style={{ margin: '0 auto 16px auto' }}>
-          THE-SAFE // OFFICIAL CITIZEN VAULT
+          THE-SAFE: OFFICIAL CITIZEN VAULT
         </h1>
 
         <p style={{
@@ -871,7 +754,7 @@ export default function App() {
       }}>
         <div>
           <div style={{ fontFamily: 'var(--font-heading)', fontSize: '24px', color: '#FFFFFF', letterSpacing: '1.5px' }}>
-            the-safe // CITIZEN REPOSITORY GATEWAY
+            the-safe: CITIZEN REPOSITORY GATEWAY
           </div>
           <div>Mobile OTP authentication powered by Python <code>pyotp</code> RFC 6238 TOTP library.</div>
         </div>
@@ -899,7 +782,7 @@ export default function App() {
               color: '#0A0A0A'
             }}>
               <span style={{ fontFamily: 'var(--font-heading)', fontSize: '26px', letterSpacing: '1px', fontWeight: 900 }}>
-                ✦ {authMode === 'login' ? 'CITIZEN LOGIN' : 'NEW CITIZEN SIGN UP'} // the-safe
+                ✦ {authMode === 'login' ? 'CITIZEN LOGIN' : 'NEW CITIZEN SIGN UP'}: the-safe
               </span>
               <button
                 onClick={() => setIsAuthModalOpen(false)}
@@ -1085,34 +968,23 @@ export default function App() {
                     ))}
                   </div>
 
-                  {/* Demo Helper Banner */}
+                  {/* Secure Phone SMS Notice */}
                   <div style={{
-                    background: 'rgba(0, 229, 255, 0.08)',
-                    border: '1px solid rgba(0, 229, 255, 0.3)',
-                    padding: '10px 14px',
+                    background: 'rgba(0, 229, 255, 0.06)',
+                    border: '1px solid rgba(0, 229, 255, 0.25)',
+                    padding: '12px 16px',
                     borderRadius: '6px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    fontSize: '12px'
+                    fontSize: '12px',
+                    lineHeight: '1.6',
+                    color: '#CBD5E1'
                   }}>
-                    <span style={{ color: '#CBD5E1' }}>
-                      Generated pyotp code: <strong style={{ color: '#AAFF00', letterSpacing: '1px' }}>{generatedOtp}</strong>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={handleAutoFillOtp}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: '#00E5FF',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        textDecoration: 'underline'
-                      }}
-                    >
-                      [AUTO-FILL OTP]
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#00E5FF', fontWeight: 700, marginBottom: '4px' }}>
+                      <span style={{ fontSize: '16px' }}>📲</span>
+                      <span>CODE DELIVERED TO USER PHONE: +91 {mobileInput}</span>
+                    </div>
+                    <div>
+                      A 6-digit one-time password has been sent to your phone number via SMS. Enter the code from your device to authenticate.
+                    </div>
                   </div>
 
                   {/* Resend Timer */}
@@ -1216,7 +1088,7 @@ export default function App() {
               color: '#0A0A0A'
             }}>
               <span style={{ fontFamily: 'var(--font-heading)', fontSize: '24px', letterSpacing: '1px', fontWeight: 900 }}>
-                ✦ LEGAL CREDENTIAL INSPECTION // {selectedDoc.shortCode}
+                ✦ LEGAL CREDENTIAL INSPECTION: {selectedDoc.shortCode}
               </span>
               <button
                 onClick={() => setSelectedDoc(null)}
@@ -1299,7 +1171,7 @@ export default function App() {
               color: '#0A0A0A'
             }}>
               <span style={{ fontFamily: 'var(--font-heading)', fontSize: '24px', letterSpacing: '1px', fontWeight: 900 }}>
-                ✦ INGEST NEW CITIZEN DOCUMENT // the-safe
+                ✦ INGEST NEW CITIZEN DOCUMENT: the-safe
               </span>
               <button
                 onClick={() => setIsUploadOpen(false)}
