@@ -1,0 +1,386 @@
+/* ==========================================================================
+   Y2K CYBER-LOCKER 2000 STYLESHEET
+   Strict Requirements:
+   - Background: #0A0A0A
+   - Hot Pink: #FF1493
+   - Electric Cyan: #00E5FF
+   - Neon Lime: #AAFF00
+   - Bold Display Font: Bebas Neue for headings
+   - Chrome Metallic Gradient Text (Silver to White)
+   - Scattered CSS ✦ Sparkle/Star Decorations
+   - Bright Gradient Dividers
+   - Navigation links in bold uppercase with neon hover underline effect
+   ========================================================================== */
+
+:root {
+  --bg-dark: #0A0A0A;
+  --hot-pink: #FF1493;
+  --electric-cyan: #00E5FF;
+  --neon-lime: #AAFF00;
+  --chrome-light: #FFFFFF;
+  --chrome-mid: #CBD5E1;
+  --chrome-dark: #64748B;
+  --font-heading: 'Bebas Neue', cursive, sans-serif;
+  --font-body: 'Space Mono', 'Courier New', monospace;
+  --font-sans: 'Plus Jakarta Sans', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-dark);
+  color: #FFFFFF;
+  font-family: var(--font-body);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  position: relative;
+  background-image: 
+    radial-gradient(circle at 20% 15%, rgba(255, 20, 147, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 80% 80%, rgba(0, 229, 255, 0.08) 0%, transparent 40%),
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+}
+
+/* ==========================================================================
+   Typography & Chrome Metallic Finish
+   ========================================================================== */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  line-height: 1;
+}
+
+/* Chrome Metallic Gradient: Silver to White with Horizon Reflection */
+.chrome-headline {
+  font-family: var(--font-heading);
+  font-size: 84px;
+  line-height: 0.92;
+  letter-spacing: 2px;
+  background: linear-gradient(
+    180deg,
+    #FFFFFF 0%,
+    #E2E8F0 25%,
+    #94A3B8 48%,
+    #334155 52%,
+    #CBD5E1 70%,
+    #FFFFFF 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 20px rgba(0, 229, 255, 0.45))
+          drop-shadow(0 0 35px rgba(255, 20, 147, 0.35));
+}
+
+@media (max-width: 900px) {
+  .chrome-headline {
+    font-size: 56px;
+  }
+}
+
+@media (max-width: 600px) {
+  .chrome-headline {
+    font-size: 40px;
+  }
+}
+
+.chrome-subhead {
+  background: linear-gradient(180deg, #FFFFFF 0%, #94A3B8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ==========================================================================
+   ✦ Sparkle / Star Decorations (Small ✦ symbols scattered)
+   ========================================================================== */
+.sparkle-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.sparkle-star {
+  position: absolute;
+  font-size: 18px;
+  line-height: 1;
+  user-select: none;
+  animation: sparkle-pulse 3s infinite ease-in-out;
+}
+
+.sparkle-cyan {
+  color: var(--electric-cyan);
+  text-shadow: 0 0 8px var(--electric-cyan), 0 0 16px var(--electric-cyan);
+}
+
+.sparkle-pink {
+  color: var(--hot-pink);
+  text-shadow: 0 0 8px var(--hot-pink), 0 0 16px var(--hot-pink);
+}
+
+.sparkle-lime {
+  color: var(--neon-lime);
+  text-shadow: 0 0 8px var(--neon-lime), 0 0 16px var(--neon-lime);
+}
+
+@keyframes sparkle-pulse {
+  0%, 100% {
+    transform: scale(0.8) rotate(0deg);
+    opacity: 0.4;
+  }
+  50% {
+    transform: scale(1.3) rotate(20deg);
+    opacity: 1;
+    filter: brightness(1.4);
+  }
+}
+
+/* ==========================================================================
+   Bright Gradient Dividers
+   ========================================================================== */
+.gradient-divider {
+  width: 100%;
+  height: 3px;
+  border: none;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--hot-pink) 25%,
+    var(--electric-cyan) 50%,
+    var(--neon-lime) 75%,
+    transparent 100%
+  );
+  box-shadow: 0 0 14px rgba(0, 229, 255, 0.8),
+              0 0 28px rgba(255, 20, 147, 0.6);
+  margin: 48px 0;
+}
+
+/* ==========================================================================
+   Navigation Links with Neon Hover Underline Effect
+   ========================================================================== */
+.neon-nav-link {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  text-transform: uppercase;
+  color: #FFFFFF;
+  text-decoration: none;
+  letter-spacing: 1.5px;
+  position: relative;
+  padding: 8px 0;
+  transition: color 0.2s ease, text-shadow 0.2s ease;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+.neon-nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 3px;
+  background: var(--electric-cyan);
+  box-shadow: 0 0 8px var(--electric-cyan), 0 0 16px var(--electric-cyan);
+  transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1), left 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.neon-nav-link:hover {
+  color: var(--electric-cyan);
+  text-shadow: 0 0 10px rgba(0, 229, 255, 0.7);
+}
+
+.neon-nav-link:hover::after {
+  width: 100%;
+  left: 0;
+}
+
+.neon-nav-link.active-link {
+  color: var(--hot-pink);
+  text-shadow: 0 0 10px rgba(255, 20, 147, 0.7);
+}
+
+.neon-nav-link.active-link::after {
+  width: 100%;
+  left: 0;
+  background: var(--hot-pink);
+  box-shadow: 0 0 8px var(--hot-pink), 0 0 16px var(--hot-pink);
+}
+
+/* ==========================================================================
+   Y2K Cybernetic Buttons & Badges
+   ========================================================================== */
+.y2k-btn {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 10px 24px;
+  background: #0A0A0A;
+  color: #FFFFFF;
+  border: 2px solid var(--electric-cyan);
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.3), inset 0 0 12px rgba(0, 229, 255, 0.15);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  border-radius: 4px;
+}
+
+.y2k-btn:hover {
+  background: var(--electric-cyan);
+  color: #0A0A0A;
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.9), 0 0 35px rgba(0, 229, 255, 0.5);
+  transform: translateY(-2px);
+}
+
+.y2k-btn-pink {
+  border-color: var(--hot-pink);
+  box-shadow: 0 0 12px rgba(255, 20, 147, 0.3), inset 0 0 12px rgba(255, 20, 147, 0.15);
+}
+
+.y2k-btn-pink:hover {
+  background: var(--hot-pink);
+  color: #FFFFFF;
+  box-shadow: 0 0 20px rgba(255, 20, 147, 0.9), 0 0 35px rgba(255, 20, 147, 0.5);
+}
+
+.y2k-btn-lime {
+  border-color: var(--neon-lime);
+  box-shadow: 0 0 12px rgba(170, 255, 0, 0.3), inset 0 0 12px rgba(170, 255, 0, 0.15);
+}
+
+.y2k-btn-lime:hover {
+  background: var(--neon-lime);
+  color: #0A0A0A;
+  box-shadow: 0 0 20px rgba(170, 255, 0, 0.9), 0 0 35px rgba(170, 255, 0, 0.5);
+}
+
+/* Badges */
+.y2k-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.badge-cyan {
+  border: 1px solid var(--electric-cyan);
+  color: var(--electric-cyan);
+  box-shadow: 0 0 8px rgba(0, 229, 255, 0.4);
+}
+
+.badge-pink {
+  border: 1px solid var(--hot-pink);
+  color: var(--hot-pink);
+  box-shadow: 0 0 8px rgba(255, 20, 147, 0.4);
+}
+
+.badge-lime {
+  border: 1px solid var(--neon-lime);
+  color: var(--neon-lime);
+  box-shadow: 0 0 8px rgba(170, 255, 0, 0.4);
+}
+
+/* ==========================================================================
+   Y2K Holographic Cyber Cards
+   ========================================================================== */
+.y2k-card {
+  background: rgba(18, 18, 24, 0.85);
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  padding: 24px;
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.25s ease;
+  backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.y2k-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 200%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--electric-cyan), var(--hot-pink), transparent);
+  animation: card-scan 4s infinite linear;
+}
+
+@keyframes card-scan {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(100%); }
+}
+
+.y2k-card:hover {
+  border-color: var(--electric-cyan);
+  box-shadow: 0 0 25px rgba(0, 229, 255, 0.35), 0 0 40px rgba(255, 20, 147, 0.15);
+  transform: translateY(-4px);
+}
+
+/* Cyber Modal */
+.y2k-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(10, 10, 10, 0.85);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  padding: 20px;
+}
+
+.y2k-modal {
+  background: #111118;
+  border: 2px solid var(--electric-cyan);
+  box-shadow: 0 0 35px rgba(0, 229, 255, 0.4), 0 0 70px rgba(255, 20, 147, 0.3);
+  max-width: 650px;
+  width: 100%;
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Inputs */
+.y2k-input {
+  width: 100%;
+  padding: 12px 16px;
+  background: #0D0D14;
+  border: 1px solid var(--electric-cyan);
+  color: #FFFFFF;
+  font-family: var(--font-body);
+  font-size: 13px;
+  outline: none;
+  box-shadow: inset 0 0 10px rgba(0, 229, 255, 0.15);
+  border-radius: 4px;
+}
+
+.y2k-input:focus {
+  border-color: var(--hot-pink);
+  box-shadow: 0 0 15px rgba(255, 20, 147, 0.4), inset 0 0 10px rgba(255, 20, 147, 0.2);
+}
