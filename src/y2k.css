@@ -1,6 +1,7 @@
 /* ==========================================================================
-   Y2K CYBER-LOCKER 2000 STYLESHEET
+   THE-SAFE // Y2K CYBERNETIC CITIZEN REPOSITORY STYLESHEET
    Strict Requirements:
+   - Brand: the-safe
    - Background: #0A0A0A
    - Hot Pink: #FF1493
    - Electric Cyan: #00E5FF
@@ -40,8 +41,8 @@ body {
   overflow-x: hidden;
   position: relative;
   background-image: 
-    radial-gradient(circle at 20% 15%, rgba(255, 20, 147, 0.08) 0%, transparent 40%),
-    radial-gradient(circle at 80% 80%, rgba(0, 229, 255, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 20% 15%, rgba(255, 20, 147, 0.09) 0%, transparent 45%),
+    radial-gradient(circle at 80% 80%, rgba(0, 229, 255, 0.09) 0%, transparent 45%),
     linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
   background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
@@ -88,12 +89,6 @@ h1, h2, h3, h4, h5, h6 {
   .chrome-headline {
     font-size: 40px;
   }
-}
-
-.chrome-subhead {
-  background: linear-gradient(180deg, #FFFFFF 0%, #94A3B8 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
 }
 
 /* ==========================================================================
@@ -234,6 +229,7 @@ h1, h2, h3, h4, h5, h6 {
   transition: all 0.2s ease;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   text-decoration: none;
   border-radius: 4px;
@@ -301,7 +297,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ==========================================================================
-   Y2K Holographic Cyber Cards
+   Y2K Holographic Cyber Cards & Service Boxes
    ========================================================================== */
 .y2k-card {
   background: rgba(18, 18, 24, 0.85);
@@ -339,6 +335,37 @@ h1, h2, h3, h4, h5, h6 {
   transform: translateY(-4px);
 }
 
+/* Service Card */
+.service-card {
+  background: rgba(14, 14, 20, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 28px 24px;
+  border-radius: 8px;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.service-card:hover {
+  border-color: var(--electric-cyan);
+  box-shadow: 0 0 25px rgba(0, 229, 255, 0.3);
+  transform: translateY(-4px);
+}
+
+/* Lock Overlay for Unauthenticated State */
+.lock-banner {
+  background: rgba(255, 20, 147, 0.1);
+  border: 1px solid var(--hot-pink);
+  box-shadow: 0 0 20px rgba(255, 20, 147, 0.25);
+  padding: 14px 20px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
 /* Cyber Modal */
 .y2k-modal-overlay {
   position: fixed;
@@ -346,8 +373,8 @@ h1, h2, h3, h4, h5, h6 {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(10, 10, 10, 0.85);
-  backdrop-filter: blur(10px);
+  background: rgba(10, 10, 10, 0.88);
+  backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -358,7 +385,7 @@ h1, h2, h3, h4, h5, h6 {
 .y2k-modal {
   background: #111118;
   border: 2px solid var(--electric-cyan);
-  box-shadow: 0 0 35px rgba(0, 229, 255, 0.4), 0 0 70px rgba(255, 20, 147, 0.3);
+  box-shadow: 0 0 40px rgba(0, 229, 255, 0.45), 0 0 80px rgba(255, 20, 147, 0.3);
   max-width: 650px;
   width: 100%;
   border-radius: 8px;
@@ -383,4 +410,47 @@ h1, h2, h3, h4, h5, h6 {
 .y2k-input:focus {
   border-color: var(--hot-pink);
   box-shadow: 0 0 15px rgba(255, 20, 147, 0.4), inset 0 0 10px rgba(255, 20, 147, 0.2);
+}
+
+/* OTP 6-Box Inputs */
+.otp-input-box {
+  width: 50px;
+  height: 56px;
+  background: #0A0A10;
+  border: 2px solid var(--electric-cyan);
+  color: var(--neon-lime);
+  font-family: var(--font-body);
+  font-size: 24px;
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+  border-radius: 6px;
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.2), inset 0 0 8px rgba(0, 229, 255, 0.1);
+  transition: all 0.2s ease;
+}
+
+.otp-input-box:focus {
+  border-color: var(--hot-pink);
+  box-shadow: 0 0 18px rgba(255, 20, 147, 0.6);
+  transform: scale(1.05);
+}
+
+/* SMS Gateway Dispatch Simulation Popup */
+.sms-dispatch-popup {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 2000;
+  background: #11111A;
+  border: 2px solid var(--neon-lime);
+  box-shadow: 0 0 30px rgba(170, 255, 0, 0.5), 0 0 60px rgba(0, 229, 255, 0.3);
+  padding: 16px 20px;
+  max-width: 440px;
+  border-radius: 8px;
+  animation: slide-in-top 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slide-in-top {
+  0% { transform: translateY(-40px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
 }
