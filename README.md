@@ -6,9 +6,9 @@
 
 ## What vault-68 Does (User Perspective & Functional Capabilities)
 
-### 1. Dual-State Privacy: Public Glimpse vs. Authenticated Vault
-* **Public Glimpse Mode**: When you first open vault-68 or when you are not logged in, sensitive document identifiers (such as your 12-digit Aadhaar number, PAN code, or driving licence number) are automatically concealed behind cryptographic masks. This prevents shoulder-surfing, data scraping, and accidental exposure in public environments.
-* **Instant Decryption Upon Sign-In**: Once authenticated, the vault transitions into your private citizen repository, unmasking all personal identifiers and unlocking full export privileges.
+### 1. Dual-State Privacy: Sealed Vault vs. Authenticated Repository
+* **Sealed Vault Architecture**: When you first open vault-68 or when you are not logged in, document preview cards and dummy specimens are completely disabled. All citizen credentials remain strictly air-gapped and sealed behind zero-knowledge cryptographic locks. Unauthenticated visitors see only the sealed vault security console with verification prompts.
+* **Instant Decryption Upon Sign-In**: Once authenticated via Resend email OTP, the vault securely unlocks and renders the citizen's personal credentials stored in Supabase PostgreSQL, unlocking full verification inspection and export privileges.
 
 ### 2. Passwordless Email OTP Authentication
 * **No Passwords to Remember or Leak**: vault-68 eliminates static passwords. You never have to create, remember, or reset complex passwords that could be vulnerable to data breaches.
@@ -30,18 +30,18 @@
 * **Downloadable Legal Records**: Citizens can instantly export and download standardized legal digital text copies of any credential with a single click.
 * **Offline Readiness**: Exported documents contain the issuing body, holder information, verification status, and record timestamps—ready to be printed, attached to employment applications, or presented during official administrative procedures.
 
-### 5. Document Ingestion (Seal New Documents into the Vault)
+### 5. Document Ingestion & National Ledger Sync
+* **Govt-Linked Ingestion**: Synchronize official documents directly with UIDAI, Income Tax Department, and MoRTH into Supabase.
 * **Custom Document Upload**: Citizens can add and secure additional legal documents beyond standard identity cards.
 * **User-Defined Details**: Specify the document title (e.g., Passport, Property Deed, Health Insurance Policy), the issuing authority, and the registration or serial number.
-* **Instant Protection**: Newly ingested documents are sealed immediately into your active vault session and can be inspected or exported like any pre-configured credential.
 
 ### 6. Real-Time Document Search and Filtering
-* **Instant Keyword Filtering**: Quickly locate specific documents among dozens of stored credentials.
+* **Instant Keyword Filtering**: Quickly locate specific documents among stored credentials once authenticated.
 * **Multi-Field Search**: Filter seamlessly by document title (e.g., *"Driving License"*), short code (e.g., *"PAN"*), or issuing authority (e.g., *"Ministry of Road Transport"*).
 
 ### 7. Instant One-Click Vault Lock
 * **Rapid Session Sealing**: When you finish viewing or exporting your documents, click **Lock Vault** to instantly re-seal your repository.
-* **Zero Residual Exposure**: Locking the vault immediately re-applies the cryptographic masks over all document numbers and returns the screen to public glimpse mode.
+* **Zero Residual Exposure**: Locking the vault immediately purges active session credentials from client memory and returns the screen to the sealed vault console.
 
 ---
 
@@ -49,20 +49,18 @@
 
 ```mermaid
 flowchart TD
-    A[Citizen visits vault-68] --> B[Public Glimpse Mode: Document Numbers Masked]
-    B --> C{Action}
-    C -->|Search / Explore| B
-    C -->|Authenticate| D[Open Citizen Login / Sign-Up Modal]
-    D --> E[Enter Registered Email Address]
-    E --> F[6-Digit One-Time Code Dispatched to Private Inbox]
-    F --> G[Citizen Enters 6-Digit Code in Vault Modal]
-    G -->|Incorrect Code| H[Alert: Remaining Attempts Shown]
-    H --> G
-    G -->|Valid Code| I[Vault Unlocked: Unmasked Credentials]
-    I --> J[Inspect Full Credential Details]
-    I --> K[Export & Download Official Digital Copies]
-    I --> L[Ingest New Government Documents]
-    I --> M[Click 'Lock Vault'] --> B
+    A[Citizen visits vault-68] --> B[Sealed Vault: Air-Gapped / Access Restricted]
+    B --> C[Open Citizen Login / Sign-Up Modal]
+    C --> D[Enter Registered Email Address]
+    D --> E[6-Digit One-Time Code Dispatched to Private Inbox]
+    E --> F[Citizen Enters 6-Digit Code in Vault Modal]
+    F -->|Incorrect Code| G[Alert: Remaining Attempts Shown]
+    G --> F
+    F -->|Valid Code| H[Vault Unlocked: Personal Sovereign Repository]
+    H --> I[Inspect Full Credential Details]
+    H --> J[Export & Download Official Digital Copies]
+    H --> K[Sync or Ingest Citizen Documents]
+    H --> L[Click 'Lock Vault'] --> B
 ```
 
 ---
