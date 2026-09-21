@@ -9,6 +9,7 @@ from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, EmailStr
 import resend
+import supabase_db
 
 try:
     from dotenv import load_dotenv
@@ -430,14 +431,91 @@ def verify_otp(payload: VerifyOtpRequest):
     citizen_name = session.get("name", "ALEXANDER VANCE")
     otp_sessions.pop(clean_email, None)
 
+    # Persist or update citizen in Supabase database
+    citizen_record = supabase_db.upsert_citizen(clean_email, citizen_name)
+
     return {
         "status": "success",
         "verified": True,
         "message": "OTP verified successfully via Resend email authentication",
         "citizen": {
-            "name": citizen_name,
+            "name": citizen_record.get("name", citizen_name),
             "email": clean_email,
             "auth_method": "resend_email_otp",
             "authenticated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-        }
+        },
+        "supabase": supabase_db.get_status()["configured"]
     }
+
+class AddDocumentRequest(BaseModel):
+    email: str = Field(..., description="Citizen email address")
+    document: dict = Field(..., description="Document object to store in Supabase")
+
+class SyncDocumentsRequest(BaseModel):
+    email: str = Field(..., description="Citizen email address")
+    name: Optional[str] = Field(None, description="Citizen full name")
+
+@app.get("/api/supabase/status")
+def supabase_status():
+    """
+    Returns live connectivity and table status for Supabase integration.
+    """
+    return supabase_db.get_status()
+
+@app.get("/api/documents")
+def get_citizen_documents(email: str):
+    """
+    Fetches all authenticated credentials for a citizen from Supabase.
+    """
+    clean_email = email.strip().lower()
+    docs = supabase_db.get_documents(clean_email)
+    return {
+        "status": "success",
+        "email": clean_email,
+        "count": len(docs),
+        "documents": docs,
+        "source": "supabase" if supabase_db.get_status()["configured"] else "local_memory"
+    }
+
+@app.post("/api/documents")
+def add_citizen_document(payload: AddDocumentRequest):
+    """
+    Inserts a newly uploaded citizen document into Supabase.
+    """
+    clean_email = payload.email.strip().lower()
+    saved = supabase_db.add_document(clean_email, payload.document)
+    return {
+        "status": "success",
+        "email": clean_email,
+        "document": saved,
+        "source": "supabase" if supabase_db.get_status()["configured"] else "local_memory"
+    }
+
+@app.post("/api/documents/sync")
+def sync_citizen_documents(payload: SyncDocumentsRequest):
+    """
+    Returns the citizen's documents from Supabase. No hardcoded or mock documents are generated.
+    """
+    clean_email = payload.email.strip().lower()
+    docs = supabase_db.get_documents(clean_email)
+    return {
+        "status": "success",
+        "email": clean_email,
+        "count": len(docs),
+        "documents": docs,
+        "source": "supabase" if supabase_db.get_status()["configured"] else "local_memory"
+    }
+
+@app.delete("/api/documents/{doc_id}")
+def delete_citizen_document(doc_id: str, email: str):
+    """
+    Deletes a citizen document from Supabase.
+    """
+    clean_email = email.strip().lower()
+    success = supabase_db.delete_document(clean_email, doc_id)
+    return {
+        "status": "success" if success else "failed",
+        "doc_id": doc_id,
+        "email": clean_email
+    }
+

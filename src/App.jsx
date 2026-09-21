@@ -1,85 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './y2k.css';
 
-// Flagship Government Documents Dataset
-const GOVT_DOCUMENTS = [
-  {
-    id: "GOV-IN-UIDAI-01",
-    title: "AADHAAR CARD (UIDAI)",
-    shortCode: "AADHAAR",
-    issuer: "Unique Identification Authority of India (UIDAI)",
-    docType: "National Citizen Identity",
-    maskedNumber: "XXXX XXXX 9042",
-    unmaskedNumber: "4819 8842 9042",
-    holder: "ALEXANDER VANCE",
-    dob: "1998-05-14",
-    gender: "MALE",
-    address: "24 Cybernetics Boulevard, Sector 4, New Delhi 110001",
-    status: "UIDAI VERIFIED",
-    colorTheme: "cyan",
-    desc: "12-digit biometric identity card with tamper-proof holographic QR and encrypted demographic payload."
-  },
-  {
-    id: "GOV-IN-ITD-02",
-    title: "PAN CARD (PERMANENT ACCOUNT NUMBER)",
-    shortCode: "PAN",
-    issuer: "Income Tax Department, Govt of India",
-    docType: "Financial & Tax Identity",
-    maskedNumber: "ABCDE****F",
-    unmaskedNumber: "ABCDE1234F",
-    holder: "ALEXANDER VANCE",
-    dob: "1998-05-14",
-    fatherName: "VICTOR VANCE",
-    status: "ITD VALIDATED",
-    colorTheme: "pink",
-    desc: "Official laminated permanent account identifier issued by the Income Tax Department for sovereign compliance."
-  },
-  {
-    id: "GOV-IN-MORTH-03",
-    title: "MOTOR DRIVING LICENSE (DL)",
-    shortCode: "DRIVING LICENCE",
-    issuer: "Ministry of Road Transport & Highways (MoRTH)",
-    docType: "Motor Vehicle Operation Authority",
-    maskedNumber: "DL-14-2020-XXXXXXX",
-    unmaskedNumber: "DL-14-2020-8812941",
-    holder: "ALEXANDER VANCE",
-    vehicleClass: "MCWG / LMV (PRIVATE)",
-    validity: "2040-05-13",
-    status: "MoRTH ACTIVE",
-    colorTheme: "lime",
-    desc: "Digital smart card driving licence compliant with Sarathi 4.0 database and biometric chip parameters."
-  },
-  {
-    id: "GOV-IN-VAHAN-04",
-    title: "VEHICLE REGISTRATION CERTIFICATE (RC)",
-    shortCode: "VEHICLE RC",
-    issuer: "Central Vehicle Repository: MoRTH",
-    docType: "Registration Certificate (RC)",
-    maskedNumber: "DL-01-XXXX-9901",
-    unmaskedNumber: "DL-01-CYBER-2026",
-    holder: "Alexander Vance",
-    vehicleModel: "TESLA CYBERTRUCK: BEV AESTHETIC",
-    chassis: "MA1XX88492019488",
-    status: "RC ACTIVE",
-    colorTheme: "cyan",
-    desc: "Digital Certificate of Registration issued under Central Motor Vehicles Rules 1989 with cryptographic endorsement."
-  },
-  {
-    id: "GOV-IN-CBSE-05",
-    title: "CLASS XII SENIOR SECONDARY MARKSHEET",
-    shortCode: "EDUCATION",
-    issuer: "Central Board of Secondary Education (CBSE)",
-    docType: "Academic Credential",
-    maskedNumber: "2020-CBSE-XXXX98",
-    unmaskedNumber: "2020-CBSE-884998",
-    holder: "ALEXANDER VANCE",
-    score: "94.6% AGGREGATE (DISTINCTION)",
-    status: "CBSE SIGNED",
-    colorTheme: "lime",
-    desc: "Tamper-evident senior school certificate examination marksheet verified through CBSE Parinam Manjusha ledger."
-  }
-];
-
 // Core Platform Services Dataset
 const PLATFORM_SERVICES = [
   {
@@ -87,7 +8,7 @@ const PLATFORM_SERVICES = [
     title: "GOV-LINKED INGESTION",
     tag: "DIRECT API SYNC",
     accent: "#00E5FF",
-    desc: "One-click synchronization with UIDAI (Aadhaar), Income Tax Dept (PAN), MoRTH (Driving Licence), and CBSE for legal digital originals."
+    desc: "One-click synchronization with UIDAI (Aadhaar), Income Tax Dept (PAN), and CBSE for legal digital originals."
   },
   {
     id: "SRV-02",
@@ -101,7 +22,7 @@ const PLATFORM_SERVICES = [
     title: "TAMPER-PROOF QR VERIFY",
     tag: "INSTANT LEGAL PROOF",
     accent: "#AAFF00",
-    desc: "Generate offline-verifiable cryptographically signed QR codes for instant verification at airports, traffic stops, and banks."
+    desc: "Generate offline-verifiable cryptographically signed QR codes for instant verification at institutions, universities, and banks."
   },
   {
     id: "SRV-04",
@@ -115,10 +36,11 @@ const PLATFORM_SERVICES = [
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [citizenProfile, setCitizenProfile] = useState({
-    name: "ALEXANDER VANCE",
-    email: "alexander.vance@vault-68.gov"
+    name: "",
+    email: ""
   });
-  const [documents, setDocuments] = useState(GOVT_DOCUMENTS);
+  const [userDocuments, setUserDocuments] = useState([]);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [toast, setToast] = useState(null);
@@ -197,12 +119,19 @@ export default function App() {
       }
 
       // Move to OTP step - code is dispatched to user's email via Resend
-      // THE FRONTEND DOES NOT DISPLAY OR STORE THE SENT OTP
       setUserOtp(['', '', '', '', '', '']);
       setResendTimer(data.expires_in || 300);
       setAuthStep('otp');
 
-      showToast(`✦ VERIFICATION EMAIL DISPATCHED TO ${cleanEmail} [CHECK INBOX] ✦`);
+      if (data.delivery === 'resend_error') {
+        const debugObj = data.debug || { message: data.message };
+        setResendDebugInfo(debugObj);
+        setOtpError(`[RESEND ${debugObj.code ? 'CODE ' + debugObj.code : 'ERROR'}] ${debugObj.message || 'Email delivery failed'}`);
+        showToast(`⚠️ RESEND DELIVERY ERROR - CHECK SERVER TERMINAL FOR OTP`);
+      } else {
+        setResendDebugInfo(null);
+        showToast(`✦ VERIFICATION EMAIL DISPATCHED TO ${cleanEmail} [CHECK INBOX] ✦`);
+      }
 
       // Auto-focus first input
       setTimeout(() => {
@@ -275,11 +204,42 @@ export default function App() {
       setAuthStep('success');
       setTimeout(() => {
         const citizen = {
-          name: data.citizen?.name || (authMode === 'signup' ? nameInput.toUpperCase() : "ALEXANDER VANCE"),
-          email: cleanEmail || "alexander.vance@vault-68.gov"
+          name: data.citizen?.name || (authMode === 'signup' ? nameInput.trim().toUpperCase() : cleanEmail.split('@')[0].toUpperCase()),
+          email: cleanEmail
         };
         setCitizenProfile(citizen);
         setIsAuthenticated(true);
+        
+        // Fetch genuine user documents from Supabase backend (NO hardcoded documents)
+        fetch(`/api/documents?email=${encodeURIComponent(citizen.email)}`)
+          .then(res => res.json())
+          .then(docData => {
+            if (docData && Array.isArray(docData.documents)) {
+              // Strip out any legacy mock docs
+              const realDocs = docData.documents.filter(d => !d.id?.startsWith('GOV-UIDAI-') && !d.id?.startsWith('GOV-ITD-') && !d.id?.startsWith('GOV-CBSE-') && !d.id?.startsWith('GOV-SYNC-'));
+              setUserDocuments(realDocs);
+              try {
+                localStorage.setItem(`vault_docs_${citizen.email}`, JSON.stringify(realDocs));
+              } catch (e) {}
+            } else {
+              setUserDocuments([]);
+            }
+          })
+          .catch(() => {
+            try {
+              const stored = localStorage.getItem(`vault_docs_${citizen.email}`);
+              if (stored) {
+                const parsed = JSON.parse(stored);
+                const realDocs = Array.isArray(parsed) ? parsed.filter(d => !d.id?.startsWith('GOV-UIDAI-') && !d.id?.startsWith('GOV-ITD-') && !d.id?.startsWith('GOV-CBSE-') && !d.id?.startsWith('GOV-SYNC-')) : [];
+                setUserDocuments(realDocs);
+              } else {
+                setUserDocuments([]);
+              }
+            } catch (e) {
+              setUserDocuments([]);
+            }
+          });
+
         setIsAuthModalOpen(false);
         setAuthStep('email');
         setUserOtp(['', '', '', '', '', '']);
@@ -295,32 +255,100 @@ export default function App() {
 
   const handleLogout = () => {
     setIsAuthenticated(false);
-    showToast('✦ VAULT SEALED: YOU ARE NOW IN PUBLIC PREVIEW MODE ✦');
+    setUserDocuments([]);
+    setCitizenProfile({ name: "", email: "" });
+    showToast('✦ VAULT SEALED: REPOSITORY LOCKED ✦');
   };
 
-  const handleUploadDoc = (e) => {
+  // Refresh real documents from Supabase backend
+  const handleRefreshDocuments = async () => {
+    if (!citizenProfile.email) return;
+    setIsSyncing(true);
+    showToast(`✦ CHECKING SUPABASE FOR DOCUMENTS... ✦`);
+    
+    try {
+      const response = await fetch(`/api/documents?email=${encodeURIComponent(citizenProfile.email)}`);
+      const data = await response.json();
+      if (response.ok && Array.isArray(data.documents)) {
+        const realDocs = data.documents.filter(d => !d.id?.startsWith('GOV-UIDAI-') && !d.id?.startsWith('GOV-ITD-') && !d.id?.startsWith('GOV-CBSE-') && !d.id?.startsWith('GOV-SYNC-'));
+        setUserDocuments(realDocs);
+        try {
+          localStorage.setItem(`vault_docs_${citizenProfile.email}`, JSON.stringify(realDocs));
+        } catch (e) {}
+        showToast(`✦ VAULT SYNCED: ${realDocs.length} DOCUMENTS LOADED ✦`);
+      } else {
+        setUserDocuments([]);
+        showToast(`✦ VAULT EMPTY: 0 DOCUMENTS IN SUPABASE ✦`);
+      }
+    } catch (err) {
+      showToast('⚠️ UNABLE TO CONNECT TO SUPABASE');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleUploadDoc = async (e) => {
     e.preventDefault();
-    if (!newTitle) return;
+    if (!newTitle.trim()) return;
 
     const newDoc = {
-      id: `GOV-USER-${documents.length + 1}`,
-      title: newTitle.toUpperCase(),
+      id: `DOC-${Date.now()}`,
+      title: newTitle.trim().toUpperCase(),
       shortCode: "CITIZEN DOC",
-      issuer: newIssuer,
+      issuer: newIssuer.trim() || "Citizen Authority",
       docType: "Citizen Verified Upload",
       maskedNumber: "XXXX-USER-REC",
-      unmaskedNumber: newNumber || "CITIZEN-9912-REC",
-      holder: citizenProfile.name,
+      unmaskedNumber: newNumber.trim() || `CITIZEN-${Math.floor(1000 + Math.random() * 9000)}-REC`,
+      holder: citizenProfile.name || "CITIZEN",
       status: "AUTHENTICATED",
       colorTheme: "cyan",
       desc: "User-submitted citizen document sealed onto sovereign storage."
     };
 
-    setDocuments([newDoc, ...documents]);
+    try {
+      const response = await fetch('/api/documents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: citizenProfile.email,
+          document: newDoc
+        })
+      });
+      const data = await response.json();
+      const savedDoc = (data && data.document) ? data.document : newDoc;
+      const updated = [savedDoc, ...userDocuments];
+      setUserDocuments(updated);
+      try {
+        localStorage.setItem(`vault_docs_${citizenProfile.email}`, JSON.stringify(updated));
+      } catch (err) {}
+      showToast(`✦ "${savedDoc.title}" SECURED IN SUPABASE VAULT ✦`);
+    } catch (err) {
+      const updated = [newDoc, ...userDocuments];
+      setUserDocuments(updated);
+      try {
+        localStorage.setItem(`vault_docs_${citizenProfile.email}`, JSON.stringify(updated));
+      } catch (err) {}
+      showToast(`✦ "${newDoc.title}" SEALED IN LOCAL VAULT ✦`);
+    }
+
     setIsUploadOpen(false);
     setNewTitle('');
     setNewNumber('');
-    showToast(`✦ "${newDoc.title}" SECURED IN VAULT-68 ✦`);
+  };
+
+  const handleDeleteDoc = async (docId) => {
+    if (!docId) return;
+    try {
+      await fetch(`/api/documents/${encodeURIComponent(docId)}?email=${encodeURIComponent(citizenProfile.email)}`, {
+        method: 'DELETE'
+      });
+    } catch (e) {}
+    const remaining = userDocuments.filter(d => d.id !== docId);
+    setUserDocuments(remaining);
+    try {
+      localStorage.setItem(`vault_docs_${citizenProfile.email}`, JSON.stringify(remaining));
+    } catch (e) {}
+    showToast('✦ DOCUMENT REMOVED FROM VAULT ✦');
   };
 
   const handleExport = (doc) => {
@@ -342,7 +370,10 @@ export default function App() {
     document.body.removeChild(element);
   };
 
-  const filteredDocuments = documents.filter(doc => {
+  // Active documents: empty for unauthenticated visitors (no glimpse), citizen's userDocuments when authenticated
+  const activeDocuments = isAuthenticated ? userDocuments : [];
+
+  const filteredDocuments = activeDocuments.filter(doc => {
     const q = searchQuery.toLowerCase().trim();
     if (!q) return true;
     return doc.title.toLowerCase().includes(q) ||
@@ -409,7 +440,7 @@ export default function App() {
               vault-68
             </span>
             <div style={{ fontSize: '10px', letterSpacing: '2px', color: '#00E5FF', fontWeight: 700 }}>
-              CITIZEN DOCUMENT STORAGE: RESEND SECURED
+              CITIZEN DOCUMENT STORAGE
             </div>
           </div>
         </div>
@@ -420,7 +451,7 @@ export default function App() {
             SERVICES
           </a>
           <a href="#documents" className="neon-nav-link">
-            GOVT DOCUMENTS
+            {isAuthenticated ? 'MY VAULT' : 'CITIZEN VAULT'}
           </a>
           <a href="#security" className="neon-nav-link">
             SECURITY SPEC
@@ -474,11 +505,6 @@ export default function App() {
         zIndex: 5,
         textAlign: 'center'
       }}>
-        <div style={{ display: 'inline-flex', gap: '8px', marginBottom: '16px', alignItems: 'center' }}>
-          <span className="y2k-badge badge-cyan">✦ VAULT-68 OFFICIAL PROTOCOL</span>
-          <span className="y2k-badge badge-lime">RESEND EMAIL OTP ACTIVE</span>
-          <span className="y2k-badge badge-pink">DIGILOCKER COMPLIANT</span>
-        </div>
 
         {/* Chrome Metallic Gradient Headline */}
         <h1 className="chrome-headline" style={{ margin: '0 auto 16px auto' }}>
@@ -493,7 +519,7 @@ export default function App() {
           lineHeight: '1.7'
         }}>
           A single sovereign vault to store, verify, and present official citizen credentials.
-          Unless authenticated via <strong>Resend</strong> email verification, sensitive document identifiers remain masked and air-gapped from public exposure.
+          Unless authenticated via <strong>Resend</strong> email verification, citizen credentials remain sealed and air-gapped from public exposure.
         </p>
 
         {/* Hero Actions */}
@@ -520,7 +546,7 @@ export default function App() {
             className="y2k-btn"
             style={{ fontSize: '18px', padding: '12px 28px' }}
           >
-            VIEW GOVT DOCUMENTS GLIMPSE ↓
+            {isAuthenticated ? 'VIEW CITIZEN VAULT ↓' : 'ACCESS CITIZEN VAULT ↓'}
           </a>
         </div>
       </section>
@@ -529,7 +555,7 @@ export default function App() {
       <div className="gradient-divider" style={{ maxWidth: '1240px', margin: '30px auto' }}></div>
 
       {/* =====================================================================
-          SERVICES GLIMPSE SECTION
+          CORE SERVICES SECTION
           ===================================================================== */}
       <section id="services" style={{ maxWidth: '1240px', margin: '0 auto', padding: '20px 24px 40px 24px', position: 'relative', zIndex: 5 }}>
         <div style={{ textAlign: 'center', marginBottom: '36px' }}>
@@ -573,7 +599,7 @@ export default function App() {
       <div className="gradient-divider" style={{ maxWidth: '1240px', margin: '40px auto' }}></div>
 
       {/* =====================================================================
-          GOVERNMENT DOCUMENTS SECTION: SHOWING FEW GOVT DOCUMENTS UNLESS AUTHENTICATED
+          CITIZEN DOCUMENTS VAULT SECTION
           ===================================================================== */}
       <section id="documents" style={{ maxWidth: '1240px', margin: '0 auto', padding: '0 24px 60px 24px', position: 'relative', zIndex: 5 }}>
         <div style={{
@@ -585,155 +611,319 @@ export default function App() {
           marginBottom: '20px'
         }}>
           <div>
-            <span className="y2k-badge badge-cyan" style={{ marginBottom: '8px' }}>
-              {isAuthenticated ? 'AUTHENTICATED CITIZEN VAULT' : 'PREVIEW GLIMPSE MODE'}
+            <span className={`y2k-badge ${isAuthenticated ? 'badge-lime' : 'badge-pink'}`} style={{ marginBottom: '8px' }}>
+              {isAuthenticated ? 'AUTHENTICATED CITIZEN VAULT' : 'VAULT SEALED • ZERO-KNOWLEDGE'}
             </span>
             <h2 style={{ fontSize: '38px', color: '#FFFFFF', letterSpacing: '1.5px' }}>
-              GOVERNMENT CITIZEN DOCUMENTS
+              {isAuthenticated ? 'MY CITIZEN VAULT' : 'CITIZEN DOCUMENT VAULT'}
             </h2>
             <p style={{ fontSize: '13px', color: '#94A3B8' }}>
               {isAuthenticated 
-                ? `Credentials unmasked for citizen ${citizenProfile.name}. Full export & verification privileges active.` 
-                : 'Showing representative government documents (Driving License, PAN Card, Aadhaar Card). Authenticate via Resend email OTP to decrypt your personal originals.'}
+                ? `Personal sovereign repository for citizen ${citizenProfile.name}. Official digital credentials with instant verification & export.` 
+                : 'Sovereign repository for national identity, financial, and transport credentials. Documents remain strictly sealed and air-gapped from public view until authenticated.'}
             </p>
           </div>
 
-          {/* Quick Filter Search */}
-          <div style={{ minWidth: '280px', flex: '1', maxWidth: '380px' }}>
-            <input
-              type="text"
-              className="y2k-input"
-              placeholder="SEARCH BY DOCUMENT OR ISSUING BODY..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-            />
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+            {isAuthenticated && (
+              <>
+                {userDocuments.length > 0 && (
+                  <button
+                    onClick={handleRefreshDocuments}
+                    disabled={isSyncing}
+                    className="y2k-btn y2k-btn-lime"
+                    style={{ fontSize: '14px', padding: '8px 16px', fontWeight: 700 }}
+                    title="Refresh records from Supabase"
+                  >
+                    {isSyncing ? '✦ REFRESHING...' : '✦ REFRESH VAULT'}
+                  </button>
+                )}
+                <button
+                  onClick={() => setIsUploadOpen(true)}
+                  className="y2k-btn"
+                  style={{ fontSize: '14px', padding: '8px 16px', fontWeight: 700 }}
+                >
+                  + UPLOAD DOC
+                </button>
+                {userDocuments.length > 0 && (
+                  <div style={{ minWidth: '220px', flex: '1', maxWidth: '300px' }}>
+                    <input
+                      type="text"
+                      className="y2k-input"
+                      placeholder="SEARCH YOUR VAULT..."
+                      value={searchQuery}
+                      onChange={e => setSearchQuery(e.target.value)}
+                    />
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
 
-        {/* Warning Banner if Unauthenticated */}
-        {!isAuthenticated && (
-          <div className="lock-banner">
-            <div>
-              <div style={{ fontWeight: 800, color: '#FF1493', fontSize: '13px', textTransform: 'uppercase' }}>
-                [!] PUBLIC GLIMPSE: CITIZEN NOT AUTHENTICATED
-              </div>
-              <div style={{ fontSize: '12px', color: '#E2E8F0', marginTop: '2px' }}>
-                Aadhaar, PAN, and Driving License numbers are masked with SHA-256 locks. Log in or Sign up with your email to unlock your verified credentials via Resend.
-              </div>
+        {/* VAULT BODY: 3 DISTINCT SOVEREIGN STATES */}
+        {!isAuthenticated ? (
+          /* STATE 1: UNAUTHENTICATED -> FULLY SEALED VAULT (NO PREVIEW CARDS, NO GLIMPSE) */
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(22, 10, 26, 0.9), rgba(10, 10, 16, 0.95))',
+            border: '2px solid rgba(255, 20, 147, 0.45)',
+            borderRadius: '12px',
+            padding: '56px 28px',
+            textAlign: 'center',
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: '0 0 45px rgba(255, 20, 147, 0.15)',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '3px',
+              background: 'linear-gradient(90deg, #FF1493, #00E5FF, #FF1493)'
+            }} />
+
+            <div style={{
+              width: '84px',
+              height: '84px',
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(255, 20, 147, 0.25) 0%, rgba(10, 10, 16, 0.8) 70%)',
+              border: '2px solid #FF1493',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 20px auto',
+              fontSize: '38px',
+              boxShadow: '0 0 28px rgba(255, 20, 147, 0.5)'
+            }}>
+              🔒
             </div>
-            <button
-              onClick={() => { setAuthMode('login'); setAuthStep('email'); setIsAuthModalOpen(true); }}
-              className="y2k-btn y2k-btn-pink"
-              style={{ fontSize: '15px', padding: '6px 16px', flexShrink: 0 }}
-            >
-              LOGIN WITH EMAIL OTP
-            </button>
+
+            <div style={{ display: 'inline-flex', gap: '8px', marginBottom: '14px', flexWrap: 'wrap', justifyContent: 'center' }}>
+              <span className="y2k-badge badge-pink">VAULT SEALED</span>
+              <span className="y2k-badge badge-cyan">AIR-GAPPED STORAGE</span>
+              <span className="y2k-badge badge-lime">RESEND OTP PROTECTED</span>
+            </div>
+
+            <h3 style={{
+              fontSize: '34px',
+              color: '#FFFFFF',
+              letterSpacing: '2px',
+              marginTop: '6px',
+              marginBottom: '12px',
+              textTransform: 'uppercase'
+            }}>
+              ACCESS RESTRICTED: AUTHENTICATION REQUIRED
+            </h3>
+
+            <p style={{
+              color: '#CBD5E1',
+              fontSize: '15px',
+              maxWidth: '680px',
+              margin: '0 auto 30px auto',
+              lineHeight: '1.7'
+            }}>
+              In accordance with sovereign privacy architecture, document glimpse and preview modes are disabled.
+              Citizen credentials (Aadhaar, PAN, Secondary Education Records) are sealed behind zero-knowledge encryption and can only be accessed by the verified citizen.
+            </p>
+
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              gap: '24px',
+              flexWrap: 'wrap',
+              maxWidth: '740px',
+              margin: '0 auto 34px auto',
+              padding: '16px 20px',
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '8px',
+              fontSize: '13px',
+              color: '#94A3B8'
+            }}>
+              <div><strong style={{ color: '#00E5FF' }}>✦ UIDAI / ITD / CBSE</strong> Official Ledgers</div>
+              <div><strong style={{ color: '#FF1493' }}>✦ Zero-Knowledge</strong> Ephemeral Key Exchange</div>
+              <div><strong style={{ color: '#AAFF00' }}>✦ Supabase PostgreSQL</strong> Persistent Sovereign Cloud</div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => { setAuthMode('login'); setAuthStep('email'); setIsAuthModalOpen(true); }}
+                className="y2k-btn y2k-btn-pink"
+                style={{ fontSize: '18px', padding: '14px 32px', fontWeight: 800 }}
+              >
+                ✦ LOGIN WITH EMAIL OTP TO UNLOCK VAULT
+              </button>
+              <button
+                onClick={() => { setAuthMode('signup'); setAuthStep('email'); setIsAuthModalOpen(true); }}
+                className="y2k-btn"
+                style={{ fontSize: '18px', padding: '14px 32px', fontWeight: 800 }}
+              >
+                CREATE CITIZEN VAULT (SIGN UP)
+              </button>
+            </div>
           </div>
-        )}
+        ) : userDocuments.length === 0 ? (
+          /* STATE 2: AUTHENTICATED BUT 0 DOCUMENTS STORED -> UPLOAD PROMPT */
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(17, 17, 24, 0.95), rgba(12, 12, 18, 0.95))',
+            border: '2px dashed rgba(0, 229, 255, 0.4)',
+            borderRadius: '12px',
+            padding: '52px 24px',
+            textAlign: 'center',
+            margin: '20px 0',
+            boxShadow: '0 0 35px rgba(0, 229, 255, 0.08)'
+          }}>
+            <div style={{
+              width: '74px',
+              height: '74px',
+              borderRadius: '50%',
+              background: 'rgba(0, 229, 255, 0.1)',
+              border: '2px solid #00E5FF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 20px auto',
+              fontSize: '34px',
+              boxShadow: '0 0 25px rgba(0, 229, 255, 0.3)'
+            }}>
+              🗂️
+            </div>
+            <span className="y2k-badge badge-cyan" style={{ marginBottom: '12px' }}>
+              VAULT INITIALIZED • 0 DOCUMENTS LINKED
+            </span>
+            <h3 style={{ fontSize: '32px', color: '#FFFFFF', letterSpacing: '1px', marginTop: '10px', marginBottom: '12px' }}>
+              NO CITIZEN DOCUMENTS STORED YET
+            </h3>
+            <p style={{ color: '#CBD5E1', fontSize: '15px', maxWidth: '620px', margin: '0 auto 28px auto', lineHeight: '1.7' }}>
+              Welcome <strong style={{ color: '#00E5FF' }}>{citizenProfile.name || 'Citizen'}</strong>. Your sovereign vault is currently empty.
+              No documents have been uploaded to your personal repository yet. Click below to securely upload your credentials (e.g. Identity documents, Certificates, Tax records) into Supabase.
+            </p>
 
-        {/* Grid of Government Document Cards */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
-          gap: '24px'
-        }}>
-          {filteredDocuments.map(doc => {
-            const badgeClass = doc.colorTheme === 'pink' ? 'badge-pink' : doc.colorTheme === 'lime' ? 'badge-lime' : 'badge-cyan';
-            const btnClass = doc.colorTheme === 'pink' ? 'y2k-btn-pink' : doc.colorTheme === 'lime' ? 'y2k-btn-lime' : '';
-
-            return (
-              <div key={doc.id} className="y2k-card">
-                <div>
-                  {/* Top Bar */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                    <span className={`y2k-badge ${badgeClass}`}>✦ {doc.shortCode}</span>
-                    <span style={{ fontSize: '11px', color: '#94A3B8' }}>{doc.status}</span>
-                  </div>
-
-                  {/* Document Title */}
-                  <h3 style={{ fontSize: '24px', color: '#FFFFFF', marginBottom: '6px', letterSpacing: '1px' }}>
-                    {doc.title}
-                  </h3>
-                  <div style={{ fontSize: '11px', color: '#00E5FF', marginBottom: '14px', fontWeight: 700 }}>
-                    ISSUER: {doc.issuer}
-                  </div>
-
-                  {/* Document Number Display (Masked vs Unmasked) */}
-                  <div style={{
-                    background: isAuthenticated ? 'rgba(0, 229, 255, 0.08)' : 'rgba(255, 20, 147, 0.08)',
-                    border: `1px solid ${isAuthenticated ? '#00E5FF' : '#FF1493'}`,
-                    padding: '12px',
-                    borderRadius: '6px',
-                    marginBottom: '14px',
-                    fontFamily: 'var(--font-body)',
-                    fontSize: '13px'
-                  }}>
-                    <div style={{ fontSize: '10px', color: '#94A3B8', textTransform: 'uppercase' }}>
-                      {doc.docType} NUMBER:
-                    </div>
-                    <div style={{
-                      fontSize: '18px',
-                      fontWeight: 700,
-                      color: isAuthenticated ? '#AAFF00' : '#FFFFFF',
-                      letterSpacing: '1px',
-                      marginTop: '4px'
-                    }}>
-                      {isAuthenticated ? doc.unmaskedNumber : doc.maskedNumber}
-                    </div>
-                    {!isAuthenticated && (
-                      <div style={{ fontSize: '10px', color: '#FF1493', marginTop: '4px' }}>
-                        🔒 ENCRYPTED • LOGIN VIA EMAIL OTP TO UNMASK
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Citizen Metadata */}
-                  <div style={{ fontSize: '12px', color: '#CBD5E1', marginBottom: '14px', lineHeight: '1.6' }}>
-                    <div><strong>REGISTERED CITIZEN:</strong> {isAuthenticated ? citizenProfile.name : doc.holder}</div>
-                    {doc.dob && <div><strong>DOB:</strong> {doc.dob}</div>}
-                    {doc.vehicleClass && <div><strong>VEHICLE CLASS:</strong> {doc.vehicleClass}</div>}
-                    {doc.score && <div><strong>RESULT:</strong> {doc.score}</div>}
-                  </div>
-
-                  <p style={{ fontSize: '12px', color: '#94A3B8', lineHeight: '1.5', marginBottom: '18px' }}>
-                    {doc.desc}
-                  </p>
-                </div>
-
-                {/* Actions */}
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  {isAuthenticated ? (
-                    <>
-                      <button
-                        onClick={() => setSelectedDoc(doc)}
-                        className={`y2k-btn ${btnClass}`}
-                        style={{ flex: '1', fontSize: '16px', padding: '8px 12px' }}
-                      >
-                        ✦ INSPECT
-                      </button>
-                      <button
-                        onClick={() => handleExport(doc)}
-                        className="y2k-btn"
-                        style={{ fontSize: '16px', padding: '8px 14px' }}
-                        title="Download Legal Document"
-                      >
-                        EXPORT
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      onClick={() => { setAuthMode('login'); setAuthStep('email'); setIsAuthModalOpen(true); }}
-                      className="y2k-btn y2k-btn-pink"
-                      style={{ width: '100%', fontSize: '16px', padding: '10px 14px' }}
-                    >
-                      ✦ AUTHENTICATE TO UNLOCK
-                    </button>
-                  )}
-                </div>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => setIsUploadOpen(true)}
+                className="y2k-btn y2k-btn-lime"
+                style={{ fontSize: '18px', padding: '12px 28px', fontWeight: 800 }}
+              >
+                + UPLOAD CITIZEN DOCUMENT
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* STATE 3: AUTHENTICATED & HAS DOCUMENTS -> RENDER PERSONAL CREDENTIAL CARDS */
+          <>
+            {filteredDocuments.length === 0 ? (
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '8px',
+                textAlign: 'center',
+                padding: '48px 20px',
+                color: '#94A3B8'
+              }}>
+                <p style={{ fontSize: '16px', color: '#FFFFFF', marginBottom: '8px' }}>
+                  NO DOCUMENTS MATCHING "{searchQuery.toUpperCase()}"
+                </p>
+                <p style={{ fontSize: '13px' }}>Try adjusting your search query or clear the filter.</p>
               </div>
-            );
-          })}
-        </div>
+            ) : (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
+                gap: '24px'
+              }}>
+                {filteredDocuments.map(doc => {
+                  const badgeClass = doc.colorTheme === 'pink' ? 'badge-pink' : doc.colorTheme === 'lime' ? 'badge-lime' : 'badge-cyan';
+                  const btnClass = doc.colorTheme === 'pink' ? 'y2k-btn-pink' : doc.colorTheme === 'lime' ? 'y2k-btn-lime' : '';
+
+                  return (
+                    <div key={doc.id} className="y2k-card">
+                      <div>
+                        {/* Top Bar */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                          <span className={`y2k-badge ${badgeClass}`}>✦ {doc.shortCode}</span>
+                          <span style={{ fontSize: '11px', color: '#94A3B8' }}>{doc.status}</span>
+                        </div>
+
+                        {/* Document Title */}
+                        <h3 style={{ fontSize: '24px', color: '#FFFFFF', marginBottom: '6px', letterSpacing: '1px' }}>
+                          {doc.title}
+                        </h3>
+                        <div style={{ fontSize: '11px', color: '#00E5FF', marginBottom: '14px', fontWeight: 700 }}>
+                          ISSUER: {doc.issuer}
+                        </div>
+
+                        {/* Document Number Display (Unmasked for Authenticated Citizen) */}
+                        <div style={{
+                          background: 'rgba(0, 229, 255, 0.08)',
+                          border: '1px solid #00E5FF',
+                          padding: '12px',
+                          borderRadius: '6px',
+                          marginBottom: '14px',
+                          fontFamily: 'var(--font-body)',
+                          fontSize: '13px'
+                        }}>
+                          <div style={{ fontSize: '10px', color: '#94A3B8', textTransform: 'uppercase' }}>
+                            {doc.docType} NUMBER:
+                          </div>
+                          <div style={{
+                            fontSize: '18px',
+                            fontWeight: 700,
+                            color: '#AAFF00',
+                            letterSpacing: '1px',
+                            marginTop: '4px'
+                          }}>
+                            {doc.unmaskedNumber || doc.maskedNumber}
+                          </div>
+                        </div>
+
+                        {/* Citizen Metadata */}
+                        <div style={{ fontSize: '12px', color: '#CBD5E1', marginBottom: '14px', lineHeight: '1.6' }}>
+                          <div><strong>REGISTERED CITIZEN:</strong> {citizenProfile.name || doc.holder}</div>
+                          {doc.dob && <div><strong>DOB:</strong> {doc.dob}</div>}
+                          {doc.gender && <div><strong>GENDER:</strong> {doc.gender}</div>}
+                        </div>
+
+                        <p style={{ fontSize: '12px', color: '#94A3B8', lineHeight: '1.5', marginBottom: '18px' }}>
+                          {doc.desc}
+                        </p>
+                      </div>
+
+                      {/* Actions */}
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          onClick={() => setSelectedDoc(doc)}
+                          className={`y2k-btn ${btnClass}`}
+                          style={{ flex: 1, fontSize: '15px', padding: '8px 12px' }}
+                        >
+                          VIEW DETAILS
+                        </button>
+                        <button
+                          onClick={() => handleExport(doc)}
+                          className="y2k-btn"
+                          style={{ fontSize: '15px', padding: '8px 12px' }}
+                          title="Download Legal Document"
+                        >
+                          EXPORT
+                        </button>
+                        <button
+                          onClick={() => handleDeleteDoc(doc.id)}
+                          className="y2k-btn y2k-btn-pink"
+                          style={{ fontSize: '15px', padding: '8px 12px' }}
+                          title="Delete Document from Vault"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
       </section>
 
       {/* Bright Gradient Divider */}
@@ -758,13 +948,13 @@ export default function App() {
           <div style={{ fontFamily: 'var(--font-heading)', fontSize: '24px', color: '#FFFFFF', letterSpacing: '1.5px' }}>
             vault-68: CITIZEN REPOSITORY GATEWAY
           </div>
-          <div>Citizen OTP authentication powered by Resend email verification service.</div>
+          <div>Sovereign citizen storage powered by Supabase PostgreSQL & Resend OTP gateway.</div>
         </div>
         <div style={{ display: 'flex', gap: '16px', color: '#00E5FF', fontWeight: 700 }}>
           <span>✦ AADHAAR</span>
           <span>✦ PAN</span>
-          <span>✦ DRIVING LICENCE</span>
           <span>✦ RESEND</span>
+          <span>✦ SUPABASE</span>
         </div>
       </footer>
 
@@ -926,24 +1116,53 @@ export default function App() {
                     ))}
                   </div>
 
-                  {/* Secure Email Delivery Notice - FRONTEND NEVER SHOWS THE CODE */}
-                  <div style={{
-                    background: 'rgba(0, 229, 255, 0.06)',
-                    border: '1px solid rgba(0, 229, 255, 0.25)',
-                    padding: '12px 16px',
-                    borderRadius: '6px',
-                    fontSize: '12px',
-                    lineHeight: '1.6',
-                    color: '#CBD5E1'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#00E5FF', fontWeight: 700, marginBottom: '4px' }}>
-                      <span style={{ fontSize: '16px' }}>📧</span>
-                      <span>CODE DELIVERED TO CITIZEN EMAIL: {emailInput}</span>
+                  {/* Secure Email Delivery Notice & Resend Debug Diagnostics */}
+                  {resendDebugInfo ? (
+                    <div style={{
+                      background: 'rgba(255, 20, 147, 0.08)',
+                      border: '1px solid rgba(255, 20, 147, 0.4)',
+                      padding: '12px 14px',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      lineHeight: '1.5',
+                      color: '#F1F5F9'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#FF1493', fontWeight: 800, marginBottom: '6px' }}>
+                        <span style={{ fontSize: '15px' }}>⚠️</span>
+                        <span>RESEND DELIVERY STATUS: [ERROR {resendDebugInfo.code || 'OCCURRED'}]</span>
+                      </div>
+                      <div style={{ color: '#FDA4AF', marginBottom: '8px', fontFamily: 'monospace', fontSize: '11px', wordBreak: 'break-word', background: 'rgba(0,0,0,0.35)', padding: '6px 8px', borderRadius: '4px' }}>
+                        {resendDebugInfo.message}
+                      </div>
+                      {resendDebugInfo.hint && (
+                        <div style={{ background: 'rgba(0, 229, 255, 0.06)', padding: '8px 10px', borderRadius: '4px', borderLeft: '3px solid #00E5FF', color: '#CBD5E1', fontSize: '11px', marginBottom: '8px' }}>
+                          💡 <strong style={{ color: '#00E5FF' }}>DEBUG HINT:</strong> {resendDebugInfo.hint}
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#AAFF00', fontSize: '11px', fontWeight: 700 }}>
+                        <span>✦</span>
+                        <span>LOCAL DEV FALLBACK: Check Python server terminal for 6-digit OTP code!</span>
+                      </div>
                     </div>
-                    <div>
-                      A 6-digit one-time password has been sent to your email inbox via Resend. Check your inbox (and spam folder) and enter the code to authenticate.
+                  ) : (
+                    <div style={{
+                      background: 'rgba(0, 229, 255, 0.06)',
+                      border: '1px solid rgba(0, 229, 255, 0.25)',
+                      padding: '12px 16px',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      lineHeight: '1.6',
+                      color: '#CBD5E1'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#00E5FF', fontWeight: 700, marginBottom: '4px' }}>
+                        <span style={{ fontSize: '16px' }}>📧</span>
+                        <span>CODE DELIVERED TO CITIZEN EMAIL: {emailInput}</span>
+                      </div>
+                      <div>
+                        A 6-digit one-time password has been sent to your email inbox via Resend. Check your inbox (and spam folder) and enter the code to authenticate.
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Resend Timer */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: '#94A3B8' }}>
@@ -1086,7 +1305,7 @@ export default function App() {
                 <div><strong>ISSUING AUTHORITY:</strong> {selectedDoc.issuer}</div>
                 <div><strong>VALIDATION STATUS:</strong> {selectedDoc.status}</div>
                 {selectedDoc.dob && <div><strong>DATE OF BIRTH:</strong> {selectedDoc.dob}</div>}
-                {selectedDoc.vehicleClass && <div><strong>VEHICLE ENDORSEMENTS:</strong> {selectedDoc.vehicleClass}</div>}
+                {selectedDoc.gender && <div><strong>GENDER:</strong> {selectedDoc.gender}</div>}
               </div>
 
               <p style={{ fontSize: '13px', color: '#CBD5E1', lineHeight: '1.6' }}>

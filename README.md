@@ -19,11 +19,10 @@
 ### 3. Interactive Legal Credential Inspection
 * **Comprehensive Credential Profiles**: Clicking **Inspect** on any document opens a dedicated examination modal displaying official issuing metadata.
 * **Rich Verification Metadata**: Review document-specific data points such as:
-  * Official Issuing Body (e.g., UIDAI, Income Tax Department, Ministry of Road Transport, CBSE)
+  * Official Issuing Body (e.g., UIDAI, Income Tax Department, CBSE)
   * Registered Holder Full Legal Name
   * Date of Birth (DOB) and Residential Records
-  * Vehicle Authorisation Categories (e.g., MCWG, LMV-NT)
-  * Examination Marks, Academic Percentiles, and Passing Status
+  * Academic Year, Institution, and Passing Status
 * **Authenticity Indicators**: Clear visual indicators verify that the credential has been authenticated by the appropriate governmental authority.
 
 ### 4. Official Document Export
@@ -31,13 +30,13 @@
 * **Offline Readiness**: Exported documents contain the issuing body, holder information, verification status, and record timestamps—ready to be printed, attached to employment applications, or presented during official administrative procedures.
 
 ### 5. Document Ingestion & National Ledger Sync
-* **Govt-Linked Ingestion**: Synchronize official documents directly with UIDAI, Income Tax Department, and MoRTH into Supabase.
+* **Govt-Linked Ingestion**: Synchronize official documents directly with UIDAI, Income Tax Department, and CBSE into Supabase.
 * **Custom Document Upload**: Citizens can add and secure additional legal documents beyond standard identity cards.
 * **User-Defined Details**: Specify the document title (e.g., Passport, Property Deed, Health Insurance Policy), the issuing authority, and the registration or serial number.
 
 ### 6. Real-Time Document Search and Filtering
 * **Instant Keyword Filtering**: Quickly locate specific documents among stored credentials once authenticated.
-* **Multi-Field Search**: Filter seamlessly by document title (e.g., *"Driving License"*), short code (e.g., *"PAN"*), or issuing authority (e.g., *"Ministry of Road Transport"*).
+* **Multi-Field Search**: Filter seamlessly by document title (e.g., *"Aadhaar Card"*), short code (e.g., *"PAN"*), or issuing authority (e.g., *"Income Tax Department"*).
 
 ### 7. Instant One-Click Vault Lock
 * **Rapid Session Sealing**: When you finish viewing or exporting your documents, click **Lock Vault** to instantly re-seal your repository.
