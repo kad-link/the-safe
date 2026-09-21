@@ -4,3 +4,7 @@ dist
 .DS_Store
 *.local
 __pycache__
+.env
+.vscode
+pyrefly.toml
+vite.config.js

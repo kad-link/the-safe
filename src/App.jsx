@@ -116,7 +116,7 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [citizenProfile, setCitizenProfile] = useState({
     name: "ALEXANDER VANCE",
-    mobile: "9876543210"
+    email: "alexander.vance@vault-68.gov"
   });
   const [documents, setDocuments] = useState(GOVT_DOCUMENTS);
   const [selectedDoc, setSelectedDoc] = useState(null);
@@ -126,13 +126,14 @@ export default function App() {
   // Authentication State
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState('login'); // 'login' | 'signup'
-  const [authStep, setAuthStep] = useState('phone'); // 'phone' | 'otp' | 'verifying' | 'success'
-  const [mobileInput, setMobileInput] = useState('');
+  const [authStep, setAuthStep] = useState('email'); // 'email' | 'otp' | 'verifying' | 'success'
+  const [emailInput, setEmailInput] = useState('');
   const [nameInput, setNameInput] = useState('');
   const [userOtp, setUserOtp] = useState(['', '', '', '', '', '']);
   const [otpError, setOtpError] = useState('');
   const [resendTimer, setResendTimer] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [resendDebugInfo, setResendDebugInfo] = useState(null);
 
   // Upload modal state
   const [isUploadOpen, setIsUploadOpen] = useState(false);
@@ -159,12 +160,13 @@ export default function App() {
     setTimeout(() => setToast(null), 3500);
   };
 
-  // Trigger OTP Send via FastAPI + pyotp endpoint
+  // Trigger OTP Send via FastAPI + Resend email endpoint
   const handleSendOtp = async (e) => {
     if (e) e.preventDefault();
-    const cleanNumber = mobileInput.replace(/\D/g, '');
-    if (cleanNumber.length < 10) {
-      setOtpError('PLEASE ENTER A VALID 10-DIGIT MOBILE NUMBER.');
+    const cleanEmail = emailInput.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      setOtpError('PLEASE ENTER A VALID CITIZEN EMAIL ADDRESS.');
       return;
     }
     if (authMode === 'signup' && !nameInput.trim()) {
@@ -176,30 +178,31 @@ export default function App() {
     setIsSubmitting(true);
 
     try {
-      // Call real Python FastAPI backend with pyotp
+      // Call real Python FastAPI backend with Resend integration
       const response = await fetch('/api/auth/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          mobile: cleanNumber,
-          name: authMode === 'signup' ? nameInput : undefined
+          email: cleanEmail,
+          name: authMode === 'signup' ? nameInput.trim() : undefined
         })
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        setOtpError(data.detail || 'PYOTP ENGINE ERROR: Could not dispatch OTP.');
+        setOtpError(data.detail || 'RESEND GATEWAY ERROR: Could not dispatch OTP.');
         setIsSubmitting(false);
         return;
       }
 
-      // Move to OTP step - code is strictly dispatched to user's phone via SMS
+      // Move to OTP step - code is dispatched to user's email via Resend
+      // THE FRONTEND DOES NOT DISPLAY OR STORE THE SENT OTP
       setUserOtp(['', '', '', '', '', '']);
-      setResendTimer(data.expires_in || 120);
+      setResendTimer(data.expires_in || 300);
       setAuthStep('otp');
 
-      showToast(`✦ SMS DISPATCHED TO +91 ${cleanNumber} [CHECK PHONE] ✦`);
+      showToast(`✦ VERIFICATION EMAIL DISPATCHED TO ${cleanEmail} [CHECK INBOX] ✦`);
 
       // Auto-focus first input
       setTimeout(() => {
@@ -235,28 +238,27 @@ export default function App() {
     }
   };
 
-
-  // Verify OTP submission via FastAPI + pyotp endpoint
+  // Verify OTP submission via FastAPI + Resend endpoint
   const handleVerifyOtp = async (e) => {
     if (e) e.preventDefault();
-    const enteredCode = userOtp.join('');
+    const enteredCode = userOtp.join('').trim();
 
     if (enteredCode.length < 6) {
-      setOtpError('PLEASE ENTER ALL 6 DIGITS OF THE PYOTP CODE.');
+      setOtpError('PLEASE ENTER ALL 6 DIGITS OF THE VERIFICATION CODE.');
       return;
     }
 
     setOtpError('');
     setAuthStep('verifying');
-    const cleanNumber = mobileInput.replace(/\D/g, '');
+    const cleanEmail = emailInput.trim().toLowerCase();
 
     try {
-      // Call real Python FastAPI backend with pyotp verification
+      // Call real Python FastAPI backend with verification
       const response = await fetch('/api/auth/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          mobile: cleanNumber,
+          email: cleanEmail,
           otp: enteredCode
         })
       });
@@ -269,21 +271,21 @@ export default function App() {
         return;
       }
 
-      // Successful pyotp TOTP verification
+      // Successful verification
       setAuthStep('success');
       setTimeout(() => {
         const citizen = {
           name: data.citizen?.name || (authMode === 'signup' ? nameInput.toUpperCase() : "ALEXANDER VANCE"),
-          mobile: cleanNumber || "9876543210"
+          email: cleanEmail || "alexander.vance@vault-68.gov"
         };
         setCitizenProfile(citizen);
         setIsAuthenticated(true);
         setIsAuthModalOpen(false);
-        setAuthStep('phone');
+        setAuthStep('email');
         setUserOtp(['', '', '', '', '', '']);
-        setMobileInput('');
+        setEmailInput('');
         setNameInput('');
-        showToast(`✦ PYOTP VERIFIED: WELCOME ${citizen.name} ✦`);
+        showToast(`✦ AUTHENTICATED: WELCOME ${citizen.name} ✦`);
       }, 700);
     } catch (err) {
       setAuthStep('otp');
@@ -318,23 +320,23 @@ export default function App() {
     setIsUploadOpen(false);
     setNewTitle('');
     setNewNumber('');
-    showToast(`✦ "${newDoc.title}" SECURED IN THE-SAFE ✦`);
+    showToast(`✦ "${newDoc.title}" SECURED IN VAULT-68 ✦`);
   };
 
   const handleExport = (doc) => {
     showToast(`✦ EXPORTING DIGITAL LEGAL COPY: ${doc.title} ✦`);
     const element = document.createElement('a');
     const file = new Blob([
-      `=== THE-SAFE: OFFICIAL CITIZEN DIGITAL CREDENTIAL ===\n` +
+      `=== VAULT-68: OFFICIAL CITIZEN DIGITAL CREDENTIAL ===\n` +
       `ISSUING BODY: ${doc.issuer}\n` +
       `DOCUMENT: ${doc.title}\n` +
       `RECORD NUMBER: ${isAuthenticated ? doc.unmaskedNumber : doc.maskedNumber}\n` +
       `HOLDER: ${doc.holder}\n` +
       `VALIDATION: ${doc.status}\n` +
-      `CIPHER: AES-256-GCM / PYOTP AUTHENTICATED\n`
+      `CIPHER: AES-256-GCM / RESEND OTP AUTHENTICATED\n`
     ], { type: 'text/plain' });
     element.href = URL.createObjectURL(file);
-    element.download = `${doc.shortCode.toLowerCase()}_the_safe.txt`;
+    element.download = `${doc.shortCode.toLowerCase()}_vault_68.txt`;
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
@@ -365,7 +367,7 @@ export default function App() {
 
 
       {/* =====================================================================
-          HEADER / NAVBAR: BRAND "the-safe"
+          HEADER / NAVBAR: BRAND "vault-68"
           ===================================================================== */}
       <header style={{
         padding: '20px 32px',
@@ -380,7 +382,7 @@ export default function App() {
         backdropFilter: 'blur(10px)',
         borderBottom: '1px solid rgba(0, 229, 255, 0.25)'
       }}>
-        {/* Brand Name: the-safe */}
+        {/* Brand Name: vault-68 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{
             width: '40px',
@@ -404,10 +406,10 @@ export default function App() {
               letterSpacing: '2px',
               color: '#FFFFFF'
             }}>
-              the-safe
+              vault-68
             </span>
             <div style={{ fontSize: '10px', letterSpacing: '2px', color: '#00E5FF', fontWeight: 700 }}>
-              CITIZEN DOCUMENT STORAGE: PYOTP SECURED
+              CITIZEN DOCUMENT STORAGE: RESEND SECURED
             </div>
           </div>
         </div>
@@ -443,14 +445,14 @@ export default function App() {
           ) : (
             <div style={{ display: 'flex', gap: '10px' }}>
               <button
-                onClick={() => { setAuthMode('login'); setAuthStep('phone'); setIsAuthModalOpen(true); }}
+                onClick={() => { setAuthMode('login'); setAuthStep('email'); setIsAuthModalOpen(true); }}
                 className="y2k-btn y2k-btn-pink"
                 style={{ fontWeight: 800, fontSize: '17px' }}
               >
                 ✦ CITIZEN LOGIN
               </button>
               <button
-                onClick={() => { setAuthMode('signup'); setAuthStep('phone'); setIsAuthModalOpen(true); }}
+                onClick={() => { setAuthMode('signup'); setAuthStep('email'); setIsAuthModalOpen(true); }}
                 className="y2k-btn"
                 style={{ fontWeight: 800, fontSize: '17px' }}
               >
@@ -462,7 +464,7 @@ export default function App() {
       </header>
 
       {/* =====================================================================
-          HERO SECTION: THE-SAFE
+          HERO SECTION: VAULT-68
           ===================================================================== */}
       <section style={{
         maxWidth: '1240px',
@@ -473,14 +475,14 @@ export default function App() {
         textAlign: 'center'
       }}>
         <div style={{ display: 'inline-flex', gap: '8px', marginBottom: '16px', alignItems: 'center' }}>
-          <span className="y2k-badge badge-cyan">✦ THE-SAFE OFFICIAL PROTOCOL</span>
-          <span className="y2k-badge badge-lime">PYOTP (RFC 6238 TOTP) ACTIVE</span>
+          <span className="y2k-badge badge-cyan">✦ VAULT-68 OFFICIAL PROTOCOL</span>
+          <span className="y2k-badge badge-lime">RESEND EMAIL OTP ACTIVE</span>
           <span className="y2k-badge badge-pink">DIGILOCKER COMPLIANT</span>
         </div>
 
         {/* Chrome Metallic Gradient Headline */}
         <h1 className="chrome-headline" style={{ margin: '0 auto 16px auto' }}>
-          THE-SAFE: OFFICIAL CITIZEN VAULT
+          VAULT-68: OFFICIAL CITIZEN VAULT
         </h1>
 
         <p style={{
@@ -491,7 +493,7 @@ export default function App() {
           lineHeight: '1.7'
         }}>
           A single sovereign vault to store, verify, and present official citizen credentials.
-          Unless authenticated via <strong>pyotp</strong> mobile verification, sensitive document identifiers remain masked and air-gapped from public exposure.
+          Unless authenticated via <strong>Resend</strong> email verification, sensitive document identifiers remain masked and air-gapped from public exposure.
         </p>
 
         {/* Hero Actions */}
@@ -506,11 +508,11 @@ export default function App() {
             </button>
           ) : (
             <button
-              onClick={() => { setAuthMode('login'); setAuthStep('phone'); setIsAuthModalOpen(true); }}
+              onClick={() => { setAuthMode('login'); setAuthStep('email'); setIsAuthModalOpen(true); }}
               className="y2k-btn y2k-btn-pink"
               style={{ fontSize: '18px', padding: '12px 28px', fontWeight: 800 }}
             >
-              ✦ LOGIN VIA PYOTP TO UNLOCK
+              ✦ LOGIN VIA EMAIL OTP TO UNLOCK
             </button>
           )}
           <a
@@ -533,10 +535,10 @@ export default function App() {
         <div style={{ textAlign: 'center', marginBottom: '36px' }}>
           <span className="y2k-badge badge-lime" style={{ marginBottom: '10px' }}>CORE PLATFORM SERVICES</span>
           <h2 style={{ fontSize: '42px', color: '#FFFFFF', letterSpacing: '1.5px' }}>
-            WHAT THE-SAFE OFFERS CITIZENS
+            WHAT VAULT-68 OFFERS CITIZENS
           </h2>
           <p style={{ color: '#94A3B8', fontSize: '14px', maxWidth: '620px', margin: '8px auto 0 auto' }}>
-            Explore the sovereign document storage and verification services available on the-safe platform.
+            Explore the sovereign document storage and verification services available on vault-68 platform.
           </p>
         </div>
 
@@ -592,7 +594,7 @@ export default function App() {
             <p style={{ fontSize: '13px', color: '#94A3B8' }}>
               {isAuthenticated 
                 ? `Credentials unmasked for citizen ${citizenProfile.name}. Full export & verification privileges active.` 
-                : 'Showing representative government documents (Driving License, PAN Card, Aadhaar Card). Authenticate via pyotp to decrypt your personal originals.'}
+                : 'Showing representative government documents (Driving License, PAN Card, Aadhaar Card). Authenticate via Resend email OTP to decrypt your personal originals.'}
             </p>
           </div>
 
@@ -616,15 +618,15 @@ export default function App() {
                 [!] PUBLIC GLIMPSE: CITIZEN NOT AUTHENTICATED
               </div>
               <div style={{ fontSize: '12px', color: '#E2E8F0', marginTop: '2px' }}>
-                Aadhaar, PAN, and Driving License numbers are masked with SHA-256 locks. Log in or Sign up with your mobile number to unlock your verified credentials via pyotp.
+                Aadhaar, PAN, and Driving License numbers are masked with SHA-256 locks. Log in or Sign up with your email to unlock your verified credentials via Resend.
               </div>
             </div>
             <button
-              onClick={() => { setAuthMode('login'); setAuthStep('phone'); setIsAuthModalOpen(true); }}
+              onClick={() => { setAuthMode('login'); setAuthStep('email'); setIsAuthModalOpen(true); }}
               className="y2k-btn y2k-btn-pink"
               style={{ fontSize: '15px', padding: '6px 16px', flexShrink: 0 }}
             >
-              LOGIN WITH PYOTP
+              LOGIN WITH EMAIL OTP
             </button>
           </div>
         )}
@@ -680,7 +682,7 @@ export default function App() {
                     </div>
                     {!isAuthenticated && (
                       <div style={{ fontSize: '10px', color: '#FF1493', marginTop: '4px' }}>
-                        🔒 ENCRYPTED • LOGIN VIA PYOTP TO UNMASK
+                        🔒 ENCRYPTED • LOGIN VIA EMAIL OTP TO UNMASK
                       </div>
                     )}
                   </div>
@@ -720,7 +722,7 @@ export default function App() {
                     </>
                   ) : (
                     <button
-                      onClick={() => { setAuthMode('login'); setAuthStep('phone'); setIsAuthModalOpen(true); }}
+                      onClick={() => { setAuthMode('login'); setAuthStep('email'); setIsAuthModalOpen(true); }}
                       className="y2k-btn y2k-btn-pink"
                       style={{ width: '100%', fontSize: '16px', padding: '10px 14px' }}
                     >
@@ -738,7 +740,7 @@ export default function App() {
       <div className="gradient-divider" style={{ maxWidth: '1240px', margin: '40px auto' }}></div>
 
       {/* =====================================================================
-          FOOTER: the-safe
+          FOOTER: vault-68
           ===================================================================== */}
       <footer style={{
         maxWidth: '1240px',
@@ -754,20 +756,20 @@ export default function App() {
       }}>
         <div>
           <div style={{ fontFamily: 'var(--font-heading)', fontSize: '24px', color: '#FFFFFF', letterSpacing: '1.5px' }}>
-            the-safe: CITIZEN REPOSITORY GATEWAY
+            vault-68: CITIZEN REPOSITORY GATEWAY
           </div>
-          <div>Mobile OTP authentication powered by Python <code>pyotp</code> RFC 6238 TOTP library.</div>
+          <div>Citizen OTP authentication powered by Resend email verification service.</div>
         </div>
         <div style={{ display: 'flex', gap: '16px', color: '#00E5FF', fontWeight: 700 }}>
           <span>✦ AADHAAR</span>
           <span>✦ PAN</span>
           <span>✦ DRIVING LICENCE</span>
-          <span>✦ PYOTP</span>
+          <span>✦ RESEND</span>
         </div>
       </footer>
 
       {/* =====================================================================
-          MOBILE NUMBER AUTHENTICATION MODAL (POWERED BY PYOTP)
+          EMAIL AUTHENTICATION MODAL (POWERED BY RESEND)
           ===================================================================== */}
       {isAuthModalOpen && (
         <div className="y2k-modal-overlay" onClick={() => setIsAuthModalOpen(false)}>
@@ -782,7 +784,7 @@ export default function App() {
               color: '#0A0A0A'
             }}>
               <span style={{ fontFamily: 'var(--font-heading)', fontSize: '26px', letterSpacing: '1px', fontWeight: 900 }}>
-                ✦ {authMode === 'login' ? 'CITIZEN LOGIN' : 'NEW CITIZEN SIGN UP'}: the-safe
+                ✦ {authMode === 'login' ? 'CITIZEN LOGIN' : 'NEW CITIZEN SIGN UP'}: vault-68
               </span>
               <button
                 onClick={() => setIsAuthModalOpen(false)}
@@ -801,8 +803,8 @@ export default function App() {
             </div>
 
             <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
-              {/* Tab Switcher between Login & Sign Up (when in phone step) */}
-              {authStep === 'phone' && (
+              {/* Tab Switcher between Login & Sign Up (when in email step) */}
+              {authStep === 'email' && (
                 <div style={{ display: 'flex', borderBottom: '1px solid rgba(255, 255, 255, 0.15)', paddingBottom: '12px', gap: '12px' }}>
                   <button
                     onClick={() => { setAuthMode('login'); setOtpError(''); }}
@@ -821,19 +823,19 @@ export default function App() {
                 </div>
               )}
 
-              {/* STEP 1: PHONE INPUT */}
-              {authStep === 'phone' && (
+              {/* STEP 1: EMAIL INPUT */}
+              {authStep === 'email' && (
                 <form onSubmit={handleSendOtp} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <div>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      <span className="y2k-badge badge-lime">PYOTP POWERED</span>
-                      <span className="y2k-badge badge-cyan">RFC 6238 TOTP</span>
+                      <span className="y2k-badge badge-lime">RESEND POWERED</span>
+                      <span className="y2k-badge badge-cyan">EMAIL OTP GATEWAY</span>
                     </div>
                     <h3 style={{ fontSize: '26px', color: '#FFFFFF', marginTop: '6px' }}>
-                      {authMode === 'login' ? 'ENTER REGISTERED MOBILE NUMBER' : 'CREATE CITIZEN VAULT ACCOUNT'}
+                      {authMode === 'login' ? 'ENTER REGISTERED EMAIL ADDRESS' : 'CREATE CITIZEN VAULT ACCOUNT'}
                     </h3>
                     <p style={{ fontSize: '13px', color: '#CBD5E1', marginTop: '4px' }}>
-                      A 6-digit cryptographic TOTP code will be generated via Python <strong>pyotp</strong> and dispatched via SMS.
+                      A 6-digit cryptographic verification code will be dispatched to your inbox via Resend.
                     </p>
                   </div>
 
@@ -855,62 +857,18 @@ export default function App() {
 
                   <div>
                     <label style={{ display: 'block', fontSize: '11px', color: '#00E5FF', fontWeight: 700, marginBottom: '6px' }}>
-                      10-DIGIT MOBILE NUMBER *
+                      CITIZEN EMAIL ADDRESS *
                     </label>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <span style={{
-                        background: '#0D0D14',
-                        border: '1px solid #00E5FF',
-                        color: '#00E5FF',
-                        padding: '12px 14px',
-                        borderRadius: '4px',
-                        fontWeight: 700,
-                        fontSize: '13px'
-                      }}>
-                        +91
-                      </span>
-                      <input
-                        type="tel"
-                        required
-                        maxLength={10}
-                        className="y2k-input"
-                        placeholder="9876543210"
-                        value={mobileInput}
-                        onChange={e => setMobileInput(e.target.value.replace(/\D/g, ''))}
-                      />
-                    </div>
+                    <input
+                      type="email"
+                      required
+                      className="y2k-input"
+                      placeholder="alexander.vance@vault-68.gov"
+                      value={emailInput}
+                      onChange={e => setEmailInput(e.target.value)}
+                    />
                   </div>
 
-                  {/* Demo Shortcut */}
-                  <div style={{
-                    background: 'rgba(255, 20, 147, 0.08)',
-                    border: '1px solid rgba(255, 20, 147, 0.3)',
-                    padding: '10px 14px',
-                    borderRadius: '6px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    fontSize: '12px'
-                  }}>
-                    <span style={{ color: '#CBD5E1' }}>Quick Demo Citizen Number:</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMobileInput('9876543210');
-                        if (authMode === 'signup') setNameInput('Alexander Vance');
-                      }}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: '#00E5FF',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        textDecoration: 'underline'
-                      }}
-                    >
-                      [FILL: 9876543210]
-                    </button>
-                  </div>
 
                   {otpError && (
                     <div style={{ color: '#FF1493', fontSize: '12px', fontWeight: 700, background: 'rgba(255, 20, 147, 0.1)', padding: '8px 12px', borderRadius: '4px', border: '1px solid #FF1493' }}>
@@ -933,7 +891,7 @@ export default function App() {
                       className="y2k-btn y2k-btn-pink"
                       style={{ fontSize: '16px', fontWeight: 800 }}
                     >
-                      {isSubmitting ? 'GENERATING PYOTP...' : '✦ DISPATCH PYOTP CODE'}
+                      {isSubmitting ? 'DISPATCHING EMAIL...' : '✦ DISPATCH VERIFICATION CODE'}
                     </button>
                   </div>
                 </form>
@@ -943,12 +901,12 @@ export default function App() {
               {authStep === 'otp' && (
                 <form onSubmit={handleVerifyOtp} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <div>
-                    <span className="y2k-badge badge-lime">PYOTP DISPATCHED VIA FASTAPI</span>
+                    <span className="y2k-badge badge-lime">OTP DISPATCHED VIA RESEND</span>
                     <h3 style={{ fontSize: '26px', color: '#FFFFFF', marginTop: '6px' }}>
-                      VERIFY MOBILE NUMBER (+91 {mobileInput})
+                      VERIFY CITIZEN EMAIL ({emailInput})
                     </h3>
                     <p style={{ fontSize: '13px', color: '#CBD5E1', marginTop: '4px' }}>
-                      Enter the 6-digit TOTP verification code generated by the <strong>pyotp</strong> backend.
+                      Enter the 6-digit verification code delivered to your email inbox.
                     </p>
                   </div>
 
@@ -968,7 +926,7 @@ export default function App() {
                     ))}
                   </div>
 
-                  {/* Secure Phone SMS Notice */}
+                  {/* Secure Email Delivery Notice - FRONTEND NEVER SHOWS THE CODE */}
                   <div style={{
                     background: 'rgba(0, 229, 255, 0.06)',
                     border: '1px solid rgba(0, 229, 255, 0.25)',
@@ -979,11 +937,11 @@ export default function App() {
                     color: '#CBD5E1'
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#00E5FF', fontWeight: 700, marginBottom: '4px' }}>
-                      <span style={{ fontSize: '16px' }}>📲</span>
-                      <span>CODE DELIVERED TO USER PHONE: +91 {mobileInput}</span>
+                      <span style={{ fontSize: '16px' }}>📧</span>
+                      <span>CODE DELIVERED TO CITIZEN EMAIL: {emailInput}</span>
                     </div>
                     <div>
-                      A 6-digit one-time password has been sent to your phone number via SMS. Enter the code from your device to authenticate.
+                      A 6-digit one-time password has been sent to your email inbox via Resend. Check your inbox (and spam folder) and enter the code to authenticate.
                     </div>
                   </div>
 
@@ -991,10 +949,10 @@ export default function App() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: '#94A3B8' }}>
                     <button
                       type="button"
-                      onClick={() => setAuthStep('phone')}
+                      onClick={() => setAuthStep('email')}
                       style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', textDecoration: 'underline' }}
                     >
-                      ← Change Mobile Number
+                      ← Change Email Address
                     </button>
 
                     {resendTimer > 0 ? (
@@ -1012,7 +970,7 @@ export default function App() {
                           textDecoration: 'underline'
                         }}
                       >
-                        ✦ RESEND NEW PYOTP
+                        ✦ RESEND NEW CODE
                       </button>
                     )}
                   </div>
@@ -1026,7 +984,7 @@ export default function App() {
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '8px' }}>
                     <button
                       type="button"
-                      onClick={() => setAuthStep('phone')}
+                      onClick={() => setAuthStep('email')}
                       className="y2k-btn"
                       style={{ fontSize: '16px' }}
                     >
@@ -1037,7 +995,7 @@ export default function App() {
                       className="y2k-btn y2k-btn-pink"
                       style={{ fontSize: '16px', fontWeight: 800 }}
                     >
-                      ✦ VERIFY VIA PYOTP & UNLOCK
+                      ✦ VERIFY CODE & UNLOCK
                     </button>
                   </div>
                 </form>
@@ -1048,10 +1006,10 @@ export default function App() {
                 <div style={{ textAlign: 'center', padding: '36px 20px' }}>
                   <div style={{ fontSize: '36px', color: '#00E5FF', marginBottom: '14px' }}>✦ ✦ ✦</div>
                   <h4 style={{ fontSize: '26px', color: '#FFFFFF', marginBottom: '8px' }}>
-                    VALIDATING WITH PYTHON PYOTP ENGINE...
+                    VALIDATING WITH RESEND AUTH ENGINE...
                   </h4>
                   <p style={{ fontSize: '12px', color: '#AAFF00' }}>
-                    Executing pyotp.TOTP.verify(otp, valid_window=1)...
+                    Verifying 6-digit code against secure session...
                   </p>
                 </div>
               )}
@@ -1061,10 +1019,10 @@ export default function App() {
                 <div style={{ textAlign: 'center', padding: '36px 20px' }}>
                   <div style={{ fontSize: '40px', color: '#AAFF00', marginBottom: '12px' }}>✓</div>
                   <h4 style={{ fontSize: '28px', color: '#FFFFFF', marginBottom: '6px' }}>
-                    PYOTP VALIDATION SUCCESSFUL
+                    EMAIL AUTHENTICATION SUCCESSFUL
                   </h4>
                   <p style={{ fontSize: '13px', color: '#CBD5E1' }}>
-                    Welcome to <strong>the-safe</strong>. All your official government documents are now unmasked.
+                    Welcome to <strong>vault-68</strong>. All your official government documents are now unmasked.
                   </p>
                 </div>
               )}
@@ -1171,7 +1129,7 @@ export default function App() {
               color: '#0A0A0A'
             }}>
               <span style={{ fontFamily: 'var(--font-heading)', fontSize: '24px', letterSpacing: '1px', fontWeight: 900 }}>
-                ✦ INGEST NEW CITIZEN DOCUMENT: the-safe
+                ✦ INGEST NEW CITIZEN DOCUMENT: vault-68
               </span>
               <button
                 onClick={() => setIsUploadOpen(false)}
@@ -1243,7 +1201,7 @@ export default function App() {
                   className="y2k-btn y2k-btn-pink"
                   style={{ fontSize: '16px', fontWeight: 800 }}
                 >
-                  ✦ SEAL INTO THE-SAFE
+                  ✦ SEAL INTO VAULT-68
                 </button>
               </div>
             </form>
